@@ -115,6 +115,10 @@ async def run_video_mission(mission_id: str, file: UploadFile = File(...)) -> di
                     acknowledged = actuator.acknowledge(command.command_id)
                     if acknowledged:
                         emit("COMMAND_ACKNOWLEDGED", frame.timestamp_seconds, track_id=detection.track_id, refs=refs, payload={"command_id": acknowledged.command_id, "command": acknowledged.command, "status": acknowledged.status})
+    if result.representative_frame:
+        settings = get_settings()
+        scene_result = await scene_understanding(result.representative_frame, settings.vlm_provider_url or settings.nvidia_api_url, settings.vlm_provider_api_key or settings.nvidia_api_key, settings.nvidia_model, settings.vlm_provider_timeout_seconds)
+        emit("SCENE_ANALYZED", 0.0, refs=[], payload={"provider": "nvidia" if settings.nvidia_api_key or settings.vlm_provider_api_key else "fallback", "model": settings.nvidia_model, "activity_type": scene_result.activity_type, "behavior_rating": scene_result.behavior_rating, "vlm_confidence": scene_result.vlm_confidence, "reason": scene_result.reason})
     artifact_refs: list[str] = []
     if result.representative_frame:
         artifact_refs.append(artifact_store.put(base64.b64decode(result.representative_frame)))
