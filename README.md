@@ -27,3 +27,10 @@ vanrakshak/
 ## Pitch Deck & Documentation
 
 All pitch deck presentations, proposal PDFs, architecture diagrams, and hackathon submission assets are located in the [`docs/`](docs/) directory.
+
+## MVP development
+
+Backend: `cd backend && python -m uvicorn app.main:app --reload`  
+Frontend services live in `frontend/src/`; copy `.env.example` to `.env` for local configuration. Provider credentials are backend-only.
+
+Run backend tests with `cd backend && pytest`; run frontend checks with `cd frontend && npm install && npm test && npm run typecheck`.
