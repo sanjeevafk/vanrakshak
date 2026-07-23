@@ -15,10 +15,13 @@ Date: 2026-07-23
 - Simulated commands are idempotent and expose ACK/unavailable statuses.
 - Frontend projections consume backend mission state and events.
 - The reusable perception pipeline emits evidence-linked detection and track events with deterministic fallback IDs.
+- Uploaded video missions now feed detections into threat assessment, independent policies, incident transitions, and simulated commands.
+- Replay controls are backend-owned and expose cursor, play/pause, reset, step, and speed state.
+- Telemetry projections include both the latest sample and replay history.
 
 ## Verification results
 
-- Backend: 44 tests passing, including deterministic scenario fixtures and perception event integration.
+- Backend: 55 tests passing, including video reasoning, replay sessions, and telemetry projections.
 - Frontend: 4 tests passing.
 - Frontend TypeScript typecheck: passing.
 - Frontend production build: passing.
