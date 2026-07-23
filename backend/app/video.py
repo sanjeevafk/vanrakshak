@@ -1,4 +1,3 @@
-from io import BytesIO
 from pathlib import Path
 import tempfile
 
@@ -26,6 +25,7 @@ def process_video(payload: bytes, sample_every_n_frames: int = 5) -> VideoDetect
             model = YOLO("yolov8n.pt")
             frames: list[VideoFrameResponse] = []
             index = 0
+            next_fallback_id = 1_000_000
             while True:
                 ok, frame = capture.read()
                 if not ok:
@@ -33,11 +33,22 @@ def process_video(payload: bytes, sample_every_n_frames: int = 5) -> VideoDetect
                 if index % max(1, sample_every_n_frames) == 0:
                     result = model.track(frame, persist=True, verbose=False)[0]
                     detections: list[Detection] = []
+                    seen_track_ids: set[int] = set()
                     if result.boxes is not None:
                         for box in result.boxes:
                             xyxy = box.xyxy[0].tolist()
-                            track_id = int(box.id[0]) if box.id is not None else index
-                            detections.append(Detection(track_id=track_id, **{"class": model.names[int(box.cls[0])]}, confidence=float(box.conf[0]), bbox=xyxy))
+                            raw_id = int(box.id[0].item()) if box.id is not None else None
+                            # A tracker ID must be unique within a frame. Some tracker/model
+                            # failures expose 0 or duplicate IDs; do not silently publish them.
+                            if raw_id is None or raw_id in seen_track_ids:
+                                track_id = next_fallback_id
+                                next_fallback_id += 1
+                            else:
+                                track_id = raw_id
+                            seen_track_ids.add(track_id)
+                            class_id = int(box.cls[0].item())
+                            confidence = float(box.conf[0].item())
+                            detections.append(Detection(track_id=track_id, **{"class": model.names[class_id]}, confidence=confidence, bbox=xyxy))
                     frames.append(VideoFrameResponse(frame_index=index, timestamp_seconds=index / fps if fps else 0, detections=detections))
                 index += 1
             capture.release()
