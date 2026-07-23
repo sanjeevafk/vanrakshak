@@ -1,5 +1,5 @@
 from app.events import InMemoryEventStore
-from app.perception import EvidenceStore, InMemoryArtifactStore, PerceptionPipeline
+from app.perception import EvidenceStore, InMemoryArtifactStore, PerceptionPipeline, extract_crop
 from app.events import Evidence
 from app.schemas import Detection
 
@@ -21,3 +21,10 @@ def test_evidence_store_is_bounded_per_track():
     for index in range(3):
         store.append(Evidence(evidence_id=f"e{index}", mission_id="m1", kind="crop", timestamp_seconds=index), track_id=1)
     assert [item.evidence_id for item in store.list_for_track(1)] == ["e1", "e2"]
+
+def test_extract_crop_clamps_bounds():
+    import cv2
+    import numpy as np
+    ok, encoded = cv2.imencode(".jpg", np.zeros((20, 20, 3), dtype=np.uint8))
+    crop = extract_crop(encoded.tobytes(), [-5, -5, 10, 10])
+    assert crop and crop != encoded.tobytes()

@@ -53,6 +53,27 @@ class CropSelector:
             if len(selected) >= self.max_per_track: break
         return selected
 
+def extract_crop(frame_bytes: bytes, bbox: list[float], *, image_format: str = ".jpg") -> bytes:
+    """Extract a clamped encoded crop; keeps raw frame data out of event payloads."""
+    try:
+        import cv2
+        import numpy as np
+        image = cv2.imdecode(np.frombuffer(frame_bytes, dtype=np.uint8), cv2.IMREAD_COLOR)
+        if image is None:
+            raise ValueError("invalid image bytes")
+        height, width = image.shape[:2]
+        x1, y1, x2, y2 = [int(round(value)) for value in bbox]
+        x1, x2 = max(0, min(x1, width - 1)), max(0, min(x2, width))
+        y1, y2 = max(0, min(y1, height - 1)), max(0, min(y2, height))
+        if x2 <= x1 or y2 <= y1:
+            raise ValueError("empty crop bounds")
+        ok, encoded = cv2.imencode(image_format, image[y1:y2, x1:x2])
+        if not ok:
+            raise ValueError("crop encoding failed")
+        return encoded.tobytes()
+    except ImportError as error:
+        raise RuntimeError("opencv is required for crop extraction") from error
+
 def filter_detections(detections: list[Detection], confidence_threshold: float = 0.35) -> list[Detection]:
     return [d for d in detections if d.confidence >= confidence_threshold]
 
