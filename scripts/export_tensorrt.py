@@ -38,7 +38,9 @@ def main():
     parser = argparse.ArgumentParser(description="Export RT-DETR model to TensorRT engine for edge hardware.")
     parser.add_argument("--model", type=str, default="rtdetr-l.pt", help="Model filename (default: rtdetr-l.pt)")
     parser.add_argument("--format", type=str, default="engine", choices=["engine", "onnx", "torchscript"], help="Export format (default: engine)")
-    parser.add_argument("--half", action="store_true", default=True, help="Enable FP16 precision (default: True)")
+    parser.add_argument("--half", dest="half", action="store_true", help="Enable FP16 precision")
+    parser.add_argument("--no-half", dest="half", action="store_false", help="Disable FP16 precision")
+    parser.set_defaults(half=True)
     parser.add_argument("--device", type=int, default=0, help="CUDA device index (default: 0)")
 
     args = parser.parse_args()

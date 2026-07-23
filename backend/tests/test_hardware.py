@@ -6,12 +6,12 @@ def test_mavlink_connect_and_dispatch():
     assert not adapter.is_connected()
 
     res_conn = adapter.connect("udp://:14540")
-    assert res_conn is True
-    assert adapter.is_connected()
+    assert res_conn is False
+    assert not adapter.is_connected()
 
     action = adapter.dispatch_action("RETURN_TO_BASE", payload={"lat": 12.97, "lon": 77.59})
     assert action["mavlink_cmd"] == "MAV_CMD_NAV_RETURN_TO_LAUNCH"
-    assert action["mavlink_status"] == "SENT"
+    assert action["mavlink_status"] == "SIMULATED"
     assert len(adapter.dispatched_actions) == 1
 
 

@@ -26,19 +26,10 @@ class MAVLinkAutopilotAdapter:
     def connect(self, connection_string: str | None = None) -> bool:
         if connection_string:
             self.connection_string = connection_string
-        # Seam allows graceful fallback when running in simulation vs live flight hardware
-        try:
-            # In live hardware flight mode:
-            # from mavsdk import System
-            # self._drone = System()
-            # await self._drone.connect(system_address=self.connection_string)
-            self.connected = True
-            print(f"[MAVLink Autopilot] Connected to flight controller at {self.connection_string}")
-            return True
-        except Exception as err:
-            self.connected = False
-            print(f"[MAVLink Autopilot] Failed to connect to flight hardware: {err}")
-            return False
+        # A real transport is intentionally not included in this MVP. Never claim
+        # hardware connectivity when only the seam is available.
+        self.connected = False
+        return False
 
     def is_connected(self) -> bool:
         return self.connected

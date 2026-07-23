@@ -19,3 +19,8 @@ def test_ensure_model_weights_cached(tmp_path, monkeypatch):
     result = ensure_model_weights("dummy.pt")
     assert result == dummy_file
     assert result.read_bytes() == b"dummy_weights_content"
+
+def test_rejects_path_traversal_and_unapproved_url(tmp_path, monkeypatch):
+    monkeypatch.setenv("MODEL_CACHE_DIR", str(tmp_path))
+    with pytest.raises(ValueError): ensure_model_weights("../escape.pt")
+    with pytest.raises(ValueError): ensure_model_weights("new.pt", custom_url="http://untrusted.example/model")
