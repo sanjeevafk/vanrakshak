@@ -1,0 +1,34 @@
+import { useMemo, useState } from "react";
+import { VisionService, type VideoDetection } from "./services/VisionService";
+
+const vision = new VisionService(import.meta.env.VITE_BACKEND_URL ?? "http://127.0.0.1:8000");
+
+export default function App() {
+  const [file, setFile] = useState<File>();
+  const [preview, setPreview] = useState<string>();
+  const [result, setResult] = useState<VideoDetection>();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+  const detections = useMemo(() => result?.frames.flatMap((frame) => frame.detections) ?? [], [result]);
+  const threat = Math.min(100, detections.length * 18);
+
+  async function analyze() {
+    if (!file) return;
+    setBusy(true); setError(undefined);
+    try { setResult(await vision.detectVideo(file)); } catch (e) { setError(e instanceof Error ? e.message : "Analysis failed"); }
+    finally { setBusy(false); }
+  }
+
+  return <main className="app">
+    <header><div><p className="eyebrow">VANRAKSHAK // C2 CONTROL</p><h1>Forest mission console</h1></div><span className="status">● SYSTEM ONLINE</span></header>
+    <section className="grid">
+      <div className="panel video-panel"><div className="panel-title"><span>LIVE FOOTAGE</span><span>{result?.source ?? "STANDBY"}</span></div>
+        {preview ? <video className="video" src={preview} controls /> : <div className="drop">Upload drone footage to begin analysis</div>}
+        <input aria-label="Drone footage" type="file" accept="video/*" onChange={(event) => { const next = event.target.files?.[0]; if (next) { setFile(next); setPreview(URL.createObjectURL(next)); setResult(undefined); } }} />
+        <button disabled={!file || busy} onClick={analyze}>{busy ? "ANALYZING…" : "ANALYZE FOOTAGE"}</button>{error && <p className="error">{error}</p>}
+      </div>
+      <aside className="panel"><div className="panel-title">MISSION STATUS</div><div className="metric"><span>STATE</span><strong>{threat > 45 ? "INVESTIGATE" : "PATROL"}</strong></div><div className="metric"><span>THREAT SCORE</span><strong className={threat > 45 ? "danger" : "safe"}>{threat}/100</strong></div><div className="metric"><span>DETECTIONS</span><strong>{detections.length}</strong></div><div className="metric"><span>FRAMES SAMPLED</span><strong>{result?.frames.length ?? 0}</strong></div></aside>
+    </section>
+    <section className="panel"><div className="panel-title">DETECTION STREAM</div>{detections.length ? <div className="stream">{result?.frames.map((frame) => <div className="event" key={frame.frame_index}><span>{frame.timestamp_seconds.toFixed(2)}s</span><span>{frame.detections.map((d) => `${d.class} #${d.track_id}`).join(", ") || "No objects"}</span></div>)}</div> : <p className="muted">No detections yet. Results will appear here after analysis.</p>}</section>
+  </main>;
+}
