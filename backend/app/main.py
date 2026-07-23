@@ -10,6 +10,8 @@ from .perception import InMemoryArtifactStore
 from .policies import PolicyEngine
 from .actuator import ActuatorAdapter
 from .mission import ThreatInput, threat_score
+from .state_machines import transition_incident
+from .events import IncidentState
 from pydantic import BaseModel, Field
 
 app = FastAPI(title="VanRakshak Inference API", version="0.1.0")
@@ -24,6 +26,7 @@ class MissionCreate(BaseModel):
 class MissionRun(BaseModel):
     ticks: int = Field(default=3, ge=0, le=300)
     wildlife: bool = False
+    vlm_confirmed: bool = True
 
 
 @app.get("/health")
@@ -62,7 +65,7 @@ def create_mission(request: MissionCreate) -> dict:
 @app.post("/missions/{mission_id}/run")
 def run_mission(mission_id: str, request: MissionRun | None = None) -> dict:
     request = request or MissionRun()
-    summary, diagnostics = runner.run(mission_id, request.ticks, wildlife=request.wildlife)
+    summary, diagnostics = runner.run(mission_id, request.ticks, wildlife=request.wildlife, vlm_confirmed=request.vlm_confirmed)
     return {"mission_id": mission_id, "summary": summary.model_dump(), "event_count": summary.event_count, "events_url": f"/missions/{mission_id}/events", "diagnostics": diagnostics.model_dump()}
 
 @app.post("/missions/{mission_id}/run/video")
@@ -75,6 +78,7 @@ async def run_video_mission(mission_id: str, file: UploadFile = File(...)) -> di
     policies = PolicyEngine()
     actuator = ActuatorAdapter(mission_id)
     evidence_refs: dict[int, list[str]] = {}
+    incident_states: dict[int, IncidentState] = {}
     def emit(event_type: str, timestamp: float, *, track_id: int | None = None, refs: list[str] | None = None, payload: dict | None = None) -> None:
         nonlocal sequence
         sequence += 1
@@ -93,6 +97,10 @@ async def run_video_mission(mission_id: str, file: UploadFile = File(...)) -> di
             decisions = policies.evaluate({"class_name": detection.class_name, "confidence": detection.confidence, "persistent": track_counts[detection.track_id] >= 2, "vlm_confirmed": False, "track_id": detection.track_id, "evidence_refs": refs})
             for decision in decisions:
                 emit("POLICY_EVALUATED", frame.timestamp_seconds, track_id=detection.track_id, refs=refs, payload=decision.model_dump())
+                previous_incident = incident_states.get(detection.track_id, IncidentState.OBSERVED)
+                transition = transition_incident(previous_incident, persistent=track_counts[detection.track_id] >= 2, verified=decision.decision == "RECOMMEND_ALERT")
+                incident_states[detection.track_id] = IncidentState(transition.next_state)
+                emit("INCIDENT_STATE_CHANGED", frame.timestamp_seconds, track_id=detection.track_id, refs=refs, payload={"previous_state": transition.previous_state, "next_state": transition.next_state, "reason_code": transition.reason_code, "explanation": transition.explanation, "policy_id": decision.policy_id})
                 for command_name in decision.recommended_actions:
                     command = actuator.emit(command_name, timestamp_seconds=frame.timestamp_seconds, incident_id=f"incident-{detection.track_id}", evidence_refs=refs, policy_id=decision.policy_id)
                     emit("COMMAND_EMITTED", frame.timestamp_seconds, track_id=detection.track_id, refs=refs, payload=command.model_dump())
