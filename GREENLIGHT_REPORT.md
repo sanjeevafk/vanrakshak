@@ -14,10 +14,11 @@ Date: 2026-07-23
 - VLM responses are validated, cached, bounded to three calls per track, and safely fall back on timeout or invalid output.
 - Simulated commands are idempotent and expose ACK/unavailable statuses.
 - Frontend projections consume backend mission state and events.
+- The reusable perception pipeline emits evidence-linked detection and track events with deterministic fallback IDs.
 
 ## Verification results
 
-- Backend: 40 tests passing, including deterministic scenario fixtures.
+- Backend: 44 tests passing, including deterministic scenario fixtures and perception event integration.
 - Frontend: 4 tests passing.
 - Frontend TypeScript typecheck: passing.
 - Frontend production build: passing.
