@@ -18,4 +18,10 @@ export class MissionService {
     if (!eventsResponse.ok) throw new Error(`Mission events failed: ${eventsResponse.status}`);
     return { summary: body.summary, events: (await eventsResponse.json()).events };
   }
+  async replay(missionId: string, action: "start" | "pause" | "reset" | "step", speed = 1): Promise<{ cursor: number; event_count: number; playing: boolean; speed: number }> {
+    const query = action === "start" ? `?speed=${speed}` : "";
+    const response = await fetch(`${this.baseUrl}/missions/${missionId}/replay/${action}${query}`, { method: "POST" });
+    if (!response.ok) throw new Error(`Replay ${action} failed: ${response.status}`);
+    return response.json();
+  }
 }
