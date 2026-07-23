@@ -9,7 +9,7 @@ from .replay import MissionRunner
 from .perception import InMemoryArtifactStore
 from .policies import PolicyEngine
 from .actuator import ActuatorAdapter
-from .mission import ThreatInput, threat_score
+from .mission import MissionState, ThreatInput, threat_score
 from .state_machines import transition_incident
 from .events import IncidentState
 from .replay_session import ReplaySessionStore
@@ -81,6 +81,8 @@ async def run_video_mission(mission_id: str, file: UploadFile = File(...)) -> di
     actuator = ActuatorAdapter(mission_id)
     evidence_refs: dict[int, list[str]] = {}
     incident_states: dict[int, IncidentState] = {}
+    mission_state = MissionState.PATROL
+    state_transition_emitted = False
     def emit(event_type: str, timestamp: float, *, track_id: int | None = None, refs: list[str] | None = None, payload: dict | None = None) -> None:
         nonlocal sequence
         sequence += 1
@@ -88,6 +90,10 @@ async def run_video_mission(mission_id: str, file: UploadFile = File(...)) -> di
     for frame in result.frames:
         emit("FRAME_PROCESSED", frame.timestamp_seconds, payload={"frame_index": frame.frame_index, "detector_source": result.source})
         for detection in frame.detections:
+            if not state_transition_emitted:
+                mission_state = MissionState.INVESTIGATE
+                emit("MISSION_STATE_CHANGED", frame.timestamp_seconds, refs=[], payload={"previous_state": MissionState.PATROL.value, "next_state": mission_state.value, "reason_code": "VIDEO_EVIDENCE_DETECTED", "explanation": "Video perception produced a qualifying detection."})
+                state_transition_emitted = True
             track_counts[detection.track_id] = track_counts.get(detection.track_id, 0) + 1
             ref = f"video-{mission_id}-track-{detection.track_id}-frame-{frame.frame_index}"
             evidence_refs.setdefault(detection.track_id, []).append(ref)
