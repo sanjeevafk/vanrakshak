@@ -23,6 +23,15 @@ Date: 2026-07-23
 - Frontend TypeScript typecheck: passing.
 - Frontend production build: passing.
 
+### Four-video benchmark (YOLOv8n + ByteTrack, every second frame)
+
+| Video | Frames | Sampled | Detections | Unique IDs | Classes | Runtime |
+| --- | ---: | ---: | ---: | ---: | --- | ---: |
+| `01_thermal_intruder_drone.mp4` | 313 | 157 | 0 | 0 | none | 7.90 s |
+| `02_intruder_vehicle_surveillance.mp4` | 647 | 324 | 157 | 27 | bicycle, boat, bus, car, cell phone, kite, person | 9.66 s |
+| `03_thermal_wildfire_smoke_recon.mp4` | 450 | 225 | 1 | 1 | donut | 9.72 s |
+| `04_wildlife_elephants_monitoring.mp4` | 450 | 225 | 735 | 11 | elephant, horse | 11.95 s |
+
 ## Simulated behavior
 
 - Telemetry, replay clock, actuator commands, command ACKs, and ranger dispatch are simulated.

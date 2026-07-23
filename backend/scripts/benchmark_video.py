@@ -3,6 +3,8 @@ import sys
 import time
 from pathlib import Path
 
+# Allow direct execution from any working directory.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.video import process_video
 
 
