@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 from typing import Protocol
 from .schemas import Detection
+from .events import InMemoryEventStore, make_event
 
 class DetectorAdapter(Protocol):
     def detect(self, frame: bytes) -> list[Detection]: ...
@@ -46,3 +47,20 @@ def assign_fallback_track_ids(detections: list[Detection], start: int = 1_000_00
             track_id, next_id = next_id, next_id + 1
         used.add(track_id); result.append(detection.model_copy(update={"track_id": track_id}))
     return result
+
+class PerceptionPipeline:
+    def __init__(self, detector: DetectorAdapter, tracker: TrackerAdapter, artifacts: ArtifactStore, confidence_threshold: float = .35) -> None:
+        self.detector, self.tracker, self.artifacts, self.confidence_threshold = detector, tracker, artifacts, confidence_threshold
+
+    def process_frame(self, mission_id: str, frame: bytes, timestamp_seconds: float, store: InMemoryEventStore) -> list[Detection]:
+        detections = assign_fallback_track_ids(filter_detections(self.detector.detect(frame), self.confidence_threshold))
+        tracked = assign_fallback_track_ids(filter_detections(self.tracker.update(detections), self.confidence_threshold))
+        artifact_ref = self.artifacts.put(frame)
+        sequence = store.get_last_sequence(mission_id)
+        for detection in tracked:
+            sequence += 1
+            refs = [artifact_ref]
+            store.append(make_event(mission_id, sequence, timestamp_seconds, "DETECTION_OBSERVED", "perception", track_id=detection.track_id, evidence_refs=refs, payload=detection.model_dump(by_alias=True)))
+            sequence += 1
+            store.append(make_event(mission_id, sequence, timestamp_seconds, "TRACK_UPDATED", "perception", track_id=detection.track_id, evidence_refs=refs, payload=detection.model_dump(by_alias=True)))
+        return tracked
