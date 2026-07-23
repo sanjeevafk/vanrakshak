@@ -1,10 +1,11 @@
 from pathlib import Path
 import tempfile
+from typing import Callable
 
 from .schemas import Detection, VideoDetectionResponse, VideoFrameResponse
 
 
-def process_video(payload: bytes, sample_every_n_frames: int = 2, model_name: str = "yolov8n.pt", tracker_name: str = "bytetrack.yaml", confidence_threshold: float = 0.35) -> VideoDetectionResponse:
+def process_video(payload: bytes, sample_every_n_frames: int = 2, model_name: str = "yolov8n.pt", tracker_name: str = "bytetrack.yaml", confidence_threshold: float = 0.35, on_sample: Callable[[bytes, int, float, list[Detection]], None] | None = None) -> VideoDetectionResponse:
     """Process an MP4 using YOLO tracking when available.
 
     Model weights are loaded at runtime by ultralytics. If OpenCV/model loading is
@@ -57,7 +58,10 @@ def process_video(payload: bytes, sample_every_n_frames: int = 2, model_name: st
                             if confidence < confidence_threshold:
                                 continue
                             detections.append(Detection(track_id=track_id, **{"class": model.names[class_id]}, confidence=confidence, bbox=xyxy))
-                    frames.append(VideoFrameResponse(frame_index=index, timestamp_seconds=index / fps if fps else 0, detections=detections))
+                    timestamp = index / fps if fps else 0
+                    if on_sample:
+                        on_sample(frame, index, timestamp, detections)
+                    frames.append(VideoFrameResponse(frame_index=index, timestamp_seconds=timestamp, detections=detections))
                 index += 1
             capture.release()
             return VideoDetectionResponse(frame_count=total or index, fps=fps, source="YOLO", frames=frames, representative_frame=representative_frame)

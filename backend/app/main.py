@@ -6,7 +6,7 @@ from .services import detect_bytes, scene_understanding
 from .video import process_video
 from .events import InMemoryEventStore, project_summary, make_event
 from .replay import MissionRunner
-from .perception import InMemoryArtifactStore
+from .perception import InMemoryArtifactStore, TrackEvidenceBuilder
 from .policies import PolicyEngine
 from .actuator import ActuatorAdapter
 from .mission import MissionState, ThreatInput, threat_score
@@ -73,7 +73,13 @@ def run_mission(mission_id: str, request: MissionRun | None = None) -> dict:
 @app.post("/missions/{mission_id}/run/video")
 async def run_video_mission(mission_id: str, file: UploadFile = File(...)) -> dict:
     """Convert sampled video output into the same replay event contract."""
-    result = process_video(await file.read())
+    crop_builder = TrackEvidenceBuilder(artifact_store)
+    def collect_crops(frame: bytes, frame_index: int, timestamp: float, detections: list) -> None:
+        for detection in detections:
+            height = max(1.0, detection.bbox[3] - detection.bbox[1])
+            width = max(1.0, detection.bbox[2] - detection.bbox[0])
+            crop_builder.add(track_id=detection.track_id, frame_bytes=frame, bbox=detection.bbox, timestamp_seconds=timestamp, detector_confidence=detection.confidence, area=width * height)
+    result = process_video(await file.read(), on_sample=collect_crops)
     event_store.clear(mission_id)
     sequence = 0
     track_counts: dict[int, int] = {}
@@ -119,7 +125,7 @@ async def run_video_mission(mission_id: str, file: UploadFile = File(...)) -> di
         settings = get_settings()
         scene_result = await scene_understanding(result.representative_frame, settings.vlm_provider_url or settings.nvidia_api_url, settings.vlm_provider_api_key or settings.nvidia_api_key, settings.nvidia_model, settings.vlm_provider_timeout_seconds)
         emit("SCENE_ANALYZED", 0.0, refs=[], payload={"provider": "nvidia" if settings.nvidia_api_key or settings.vlm_provider_api_key else "fallback", "model": settings.nvidia_model, "activity_type": scene_result.activity_type, "behavior_rating": scene_result.behavior_rating, "vlm_confidence": scene_result.vlm_confidence, "reason": scene_result.reason})
-    artifact_refs: list[str] = []
+    artifact_refs: list[str] = [crop.artifact_ref for track_id in {d.track_id for frame in result.frames for d in frame.detections} for crop in crop_builder.selected(track_id)]
     if result.representative_frame:
         artifact_refs.append(artifact_store.put(base64.b64decode(result.representative_frame)))
     summary = project_summary(mission_id, event_store.list_events(mission_id))
