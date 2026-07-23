@@ -7,6 +7,9 @@ from .video import process_video
 from .events import InMemoryEventStore, project_summary, make_event
 from .replay import MissionRunner
 from .perception import InMemoryArtifactStore
+from .policies import PolicyEngine
+from .actuator import ActuatorAdapter
+from .mission import ThreatInput, threat_score
 from pydantic import BaseModel, Field
 
 app = FastAPI(title="VanRakshak Inference API", version="0.1.0")
@@ -68,12 +71,31 @@ async def run_video_mission(mission_id: str, file: UploadFile = File(...)) -> di
     result = process_video(await file.read())
     event_store.clear(mission_id)
     sequence = 0
-    for frame in result.frames:
+    track_counts: dict[int, int] = {}
+    policies = PolicyEngine()
+    actuator = ActuatorAdapter(mission_id)
+    evidence_refs: dict[int, list[str]] = {}
+    def emit(event_type: str, timestamp: float, *, track_id: int | None = None, refs: list[str] | None = None, payload: dict | None = None) -> None:
+        nonlocal sequence
         sequence += 1
-        event_store.append(make_event(mission_id, sequence, frame.timestamp_seconds, "FRAME_PROCESSED", "perception", payload={"frame_index": frame.frame_index, "detector_source": result.source}))
+        event_store.append(make_event(mission_id, sequence, timestamp, event_type, "perception" if event_type in {"FRAME_PROCESSED", "DETECTION_OBSERVED", "TRACK_UPDATED"} else "mission_control", track_id=track_id, evidence_refs=refs or [], payload=payload or {}))
+    for frame in result.frames:
+        emit("FRAME_PROCESSED", frame.timestamp_seconds, payload={"frame_index": frame.frame_index, "detector_source": result.source})
         for detection in frame.detections:
-            sequence += 1
-            event_store.append(make_event(mission_id, sequence, frame.timestamp_seconds, "DETECTION_OBSERVED", "perception", track_id=detection.track_id, payload=detection.model_dump(by_alias=True)))
+            track_counts[detection.track_id] = track_counts.get(detection.track_id, 0) + 1
+            ref = f"video-{mission_id}-track-{detection.track_id}-frame-{frame.frame_index}"
+            evidence_refs.setdefault(detection.track_id, []).append(ref)
+            refs = [ref]
+            emit("DETECTION_OBSERVED", frame.timestamp_seconds, track_id=detection.track_id, refs=refs, payload=detection.model_dump(by_alias=True))
+            emit("TRACK_UPDATED", frame.timestamp_seconds, track_id=detection.track_id, refs=refs, payload={**detection.model_dump(by_alias=True), "observation_count": track_counts[detection.track_id]})
+            score = threat_score(ThreatInput(vlm_confidence=0, detector_confidence=detection.confidence, zone_risk=.6, acoustic_score=.3))
+            emit("THREAT_ASSESSED", frame.timestamp_seconds, track_id=detection.track_id, refs=refs, payload={"score": score, "policy_id": "video_detection"})
+            decisions = policies.evaluate({"class_name": detection.class_name, "confidence": detection.confidence, "persistent": track_counts[detection.track_id] >= 2, "vlm_confirmed": False, "track_id": detection.track_id, "evidence_refs": refs})
+            for decision in decisions:
+                emit("POLICY_EVALUATED", frame.timestamp_seconds, track_id=detection.track_id, refs=refs, payload=decision.model_dump())
+                for command_name in decision.recommended_actions:
+                    command = actuator.emit(command_name, timestamp_seconds=frame.timestamp_seconds, incident_id=f"incident-{detection.track_id}", evidence_refs=refs, policy_id=decision.policy_id)
+                    emit("COMMAND_EMITTED", frame.timestamp_seconds, track_id=detection.track_id, refs=refs, payload=command.model_dump())
     artifact_refs: list[str] = []
     if result.representative_frame:
         artifact_refs.append(artifact_store.put(base64.b64decode(result.representative_frame)))
