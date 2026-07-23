@@ -44,3 +44,10 @@ def test_same_replay_shape_is_deterministic():
     first = client.post("/missions/deterministic/run", json={"ticks": 2}).json()["summary"]
     second = client.post("/missions/deterministic/run", json={"ticks": 2}).json()["summary"]
     assert first == second
+
+def test_video_mission_empty_upload_uses_event_contract():
+    response = client.post("/missions/video-mission/run/video", files={"file": ("empty.mp4", b"", "video/mp4")})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["event_count"] == 0
+    assert body["summary"]["mission_id"] == "video-mission"

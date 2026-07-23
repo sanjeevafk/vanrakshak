@@ -3,7 +3,7 @@ from .config import get_settings
 from .schemas import DetectionResponse, SceneResponse, VideoDetectionResponse
 from .services import detect_bytes, scene_understanding
 from .video import process_video
-from .events import InMemoryEventStore, project_summary
+from .events import InMemoryEventStore, project_summary, make_event
 from .replay import MissionRunner
 from pydantic import BaseModel, Field
 
@@ -58,6 +58,21 @@ def run_mission(mission_id: str, request: MissionRun | None = None) -> dict:
     request = request or MissionRun()
     summary, diagnostics = runner.run(mission_id, request.ticks, wildlife=request.wildlife)
     return {"mission_id": mission_id, "summary": summary.model_dump(), "event_count": summary.event_count, "events_url": f"/missions/{mission_id}/events", "diagnostics": diagnostics.model_dump()}
+
+@app.post("/missions/{mission_id}/run/video")
+async def run_video_mission(mission_id: str, file: UploadFile = File(...)) -> dict:
+    """Convert sampled video output into the same replay event contract."""
+    result = process_video(await file.read())
+    event_store.clear(mission_id)
+    sequence = 0
+    for frame in result.frames:
+        sequence += 1
+        event_store.append(make_event(mission_id, sequence, frame.timestamp_seconds, "FRAME_PROCESSED", "perception", payload={"frame_index": frame.frame_index, "detector_source": result.source}))
+        for detection in frame.detections:
+            sequence += 1
+            event_store.append(make_event(mission_id, sequence, frame.timestamp_seconds, "DETECTION_OBSERVED", "perception", track_id=detection.track_id, payload=detection.model_dump(by_alias=True)))
+    summary = project_summary(mission_id, event_store.list_events(mission_id))
+    return {"mission_id": mission_id, "summary": summary.model_dump(), "event_count": summary.event_count, "events_url": f"/missions/{mission_id}/events", "video": result.model_dump()}
 
 @app.get("/missions/{mission_id}/events")
 def mission_events(mission_id: str, after_sequence: int | None = Query(default=None, ge=0), limit: int = Query(default=100, ge=1, le=1000)) -> dict:
