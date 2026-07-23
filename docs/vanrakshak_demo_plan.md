@@ -603,6 +603,46 @@ export const useVanRakshakStore = create((set, get) => ({
 
 ## 9. Greenlight Criteria for Coding Agent Execution
 
+## 10. Implementation Status (2026-07-23)
+
+### Completed / demonstrable
+
+- **Phase 1 scaffold:** backend FastAPI app, frontend Vite/React app, typed settings, `.env.example`, lint/test/build scaffolding.
+- **Backend contracts:** `/health`, `/detect`, `/detect/video`, and `/scene-understanding` are implemented and tested.
+- **Video inference:** OpenCV MP4 ingestion, YOLO inference, representative-frame extraction, and structured frame results are working on the downloaded mangrove video.
+- **Tracking:** Ultralytics tracking is explicit and configurable; the current comparison runs both BoT-SORT and ByteTrack. Duplicate IDs within a frame are guarded against.
+- **NVIDIA VLM proxy:** root `.env` loading, server-only `NVIDIA_API_KEY`, NVIDIA multimodal request, strict JSON parsing, and fallback response are implemented.
+- **Frontend demo surface:** video upload/playback, detection stream, scene result, threat score, mission state, and simulated command log are implemented.
+- **Core tests:** backend tests pass (4); frontend tests pass (3); TypeScript check and production build pass.
+
+### Partially complete
+
+- **Detection quality:** pretrained COCO models detect generic classes; no VanRakshak forest dataset or domain-specific fine-tuning exists yet.
+- **VLM integration:** representative-frame analysis works, but per-track crops and multi-frame temporal reasoning are not yet wired.
+- **Threat/FSM:** frontend currently demonstrates simplified threat/state behavior; the full backend rule-engine FSM is not implemented.
+- **Tracker evaluation:** YOLOv8n comparison is complete; RT-DETR comparison is pending because its 63 MB checkpoint download timed out in the current environment.
+
+### Not yet implemented
+
+- MissionMemoryService and resettable incident history.
+- Full AcousticSignalService state stream and backend ThreatAssessmentService integration.
+- MissionPlannerService with all timeout, loss, battery, and geofence transitions.
+- Complete ActuatorSimulationService ACK lifecycle and `activeEffects` derivation.
+- Zustand orchestration and full C2 surfaces (map, HUD overlays, dispatch modal, replay timeline).
+- Required integration/UI gates and `GREENLIGHT_REPORT.md` sign-off.
+
+### Benchmark evidence
+
+Video: `vecteezy_kayaking-at-the-mangrove-forest-beautiful-nature-drone_45704923.mp4` (651 frames, 50 FPS; sampled every 5 frames).
+
+| Configuration | Runtime | Sampled frames | Detections | Unique IDs | Duplicate IDs/frame |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| YOLOv8n + BoT-SORT | 25.08 s | 131 | 637 | 32 | 0 |
+| YOLOv8n + ByteTrack | 8.29 s | 131 | 546 | 33 | 0 |
+| RT-DETR-l + BoT-SORT | Pending checkpoint download | — | — | — | — |
+
+These counts are not accuracy scores because the video has no ground-truth annotations. The next benchmark should use manually labeled clips or a forest tracking dataset and measure precision/recall, ID switches, track fragmentation, and latency.
+
 Plan is **greenlit for implementation** when all conditions below are true:
 
 1. VLM integration is backend-mediated and provider keys are server-only.
