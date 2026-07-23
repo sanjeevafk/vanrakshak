@@ -1,15 +1,18 @@
-from fastapi import FastAPI, File, UploadFile, Query
+from fastapi import FastAPI, File, UploadFile, Query, HTTPException, Response
+import base64
 from .config import get_settings
 from .schemas import DetectionResponse, SceneResponse, VideoDetectionResponse
 from .services import detect_bytes, scene_understanding
 from .video import process_video
 from .events import InMemoryEventStore, project_summary, make_event
 from .replay import MissionRunner
+from .perception import InMemoryArtifactStore
 from pydantic import BaseModel, Field
 
 app = FastAPI(title="VanRakshak Inference API", version="0.1.0")
 event_store = InMemoryEventStore()
 runner = MissionRunner(event_store)
+artifact_store = InMemoryArtifactStore()
 
 class MissionCreate(BaseModel):
     mission_id: str | None = None
@@ -71,8 +74,22 @@ async def run_video_mission(mission_id: str, file: UploadFile = File(...)) -> di
         for detection in frame.detections:
             sequence += 1
             event_store.append(make_event(mission_id, sequence, frame.timestamp_seconds, "DETECTION_OBSERVED", "perception", track_id=detection.track_id, payload=detection.model_dump(by_alias=True)))
+    artifact_refs: list[str] = []
+    if result.representative_frame:
+        artifact_refs.append(artifact_store.put(base64.b64decode(result.representative_frame)))
     summary = project_summary(mission_id, event_store.list_events(mission_id))
-    return {"mission_id": mission_id, "summary": summary.model_dump(), "event_count": summary.event_count, "events_url": f"/missions/{mission_id}/events", "video": result.model_dump()}
+    return {"mission_id": mission_id, "summary": summary.model_dump(), "event_count": summary.event_count, "events_url": f"/missions/{mission_id}/events", "artifacts": artifact_refs, "video": result.model_dump()}
+
+@app.get("/missions/{mission_id}/artifacts/{artifact_id}")
+def mission_artifact(mission_id: str, artifact_id: str) -> Response:
+    # Artifact IDs are content-addressed; mission_id is retained in the route
+    # for stable client contracts and future mission ownership checks.
+    del mission_id
+    artifact = artifact_store.get(artifact_id)
+    if artifact is None:
+        raise HTTPException(status_code=404, detail="artifact not found")
+    content, media_type = artifact
+    return Response(content=content, media_type=media_type)
 
 @app.get("/missions/{mission_id}/events")
 def mission_events(mission_id: str, after_sequence: int | None = Query(default=None, ge=0), limit: int = Query(default=100, ge=1, le=1000)) -> dict:

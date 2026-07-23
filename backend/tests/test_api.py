@@ -51,3 +51,6 @@ def test_video_mission_empty_upload_uses_event_contract():
     body = response.json()
     assert body["event_count"] == 0
     assert body["summary"]["mission_id"] == "video-mission"
+
+def test_missing_artifact_returns_404():
+    assert client.get("/missions/m1/artifacts/artifact-missing").status_code == 404
