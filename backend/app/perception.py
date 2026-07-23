@@ -5,6 +5,7 @@ from hashlib import sha256
 from typing import Protocol
 from .schemas import Detection
 from .events import InMemoryEventStore, make_event
+from .events import Evidence
 
 class DetectorAdapter(Protocol):
     def detect(self, frame: bytes) -> list[Detection]: ...
@@ -19,6 +20,23 @@ class InMemoryArtifactStore:
         artifact_id = f"artifact-{sha256(content).hexdigest()[:16]}"
         self._items.setdefault(artifact_id, (content, media_type)); return artifact_id
     def get(self, artifact_id: str) -> tuple[bytes, str] | None: return self._items.get(artifact_id)
+
+class EvidenceStore:
+    def __init__(self, max_per_track: int = 32) -> None:
+        self.max_per_track = max_per_track
+        self._items: dict[str, list[Evidence]] = {}
+
+    def append(self, evidence: Evidence, track_id: int | None = None) -> None:
+        key = str(track_id) if track_id is not None else "mission"
+        bucket = self._items.setdefault(key, [])
+        bucket.append(evidence)
+        del bucket[:-self.max_per_track]
+
+    def list_for_track(self, track_id: int) -> list[Evidence]:
+        return list(self._items.get(str(track_id), []))
+
+    def reset(self) -> None:
+        self._items.clear()
 
 @dataclass(frozen=True)
 class CropCandidate:
