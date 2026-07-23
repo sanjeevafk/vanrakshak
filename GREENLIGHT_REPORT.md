@@ -17,7 +17,7 @@ Date: 2026-07-23
 
 ## Verification results
 
-- Backend: 31 tests passing.
+- Backend: 40 tests passing, including deterministic scenario fixtures.
 - Frontend: 4 tests passing.
 - Frontend TypeScript typecheck: passing.
 - Frontend production build: passing.
