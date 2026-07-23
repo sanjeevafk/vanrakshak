@@ -1,5 +1,6 @@
 from fastapi import FastAPI, File, UploadFile, Query, HTTPException, Response
 import base64
+import json
 from .config import get_settings
 from .schemas import DetectionResponse, SceneResponse, VideoDetectionResponse
 from .services import detect_bytes, scene_understanding
@@ -12,6 +13,7 @@ from .actuator import ActuatorAdapter
 from .mission import MissionState, ThreatInput, threat_score
 from .state_machines import transition_incident
 from .events import IncidentState
+from .vlm import VLMAdapter
 from .replay_session import ReplaySessionStore
 from pydantic import BaseModel, Field
 
@@ -121,13 +123,27 @@ async def run_video_mission(mission_id: str, file: UploadFile = File(...)) -> di
                     acknowledged = actuator.acknowledge(command.command_id)
                     if acknowledged:
                         emit("COMMAND_ACKNOWLEDGED", frame.timestamp_seconds, track_id=detection.track_id, refs=refs, payload={"command_id": acknowledged.command_id, "command": acknowledged.command, "status": acknowledged.status})
+    settings = get_settings()
     if result.representative_frame:
-        settings = get_settings()
         scene_result = await scene_understanding(result.representative_frame, settings.vlm_provider_url or settings.nvidia_api_url, settings.vlm_provider_api_key or settings.nvidia_api_key, settings.nvidia_model, settings.vlm_provider_timeout_seconds)
         emit("SCENE_ANALYZED", 0.0, refs=[], payload={"provider": "nvidia" if settings.nvidia_api_key or settings.vlm_provider_api_key else "fallback", "model": settings.nvidia_model, "activity_type": scene_result.activity_type, "behavior_rating": scene_result.behavior_rating, "vlm_confidence": scene_result.vlm_confidence, "reason": scene_result.reason})
-    artifact_refs: list[str] = [crop.artifact_ref for track_id in {d.track_id for frame in result.frames for d in frame.detections} for crop in crop_builder.selected(track_id)]
+    track_ids = {d.track_id for frame in result.frames for d in frame.detections}
+    artifact_refs: list[str] = [crop.artifact_ref for track_id in track_ids for crop in crop_builder.selected(track_id)]
     if result.representative_frame:
         artifact_refs.append(artifact_store.put(base64.b64decode(result.representative_frame)))
+    async def provider_request(payload: dict) -> str:
+        if not settings.nvidia_api_key and not settings.vlm_provider_api_key:
+            raise RuntimeError("VLM credentials unavailable")
+        scene_result = await scene_understanding(payload["image_base64"], settings.vlm_provider_url or settings.nvidia_api_url, settings.vlm_provider_api_key or settings.nvidia_api_key, settings.nvidia_model, settings.vlm_provider_timeout_seconds)
+        return json.dumps({"scene_summary": scene_result.scene_summary, "vlm_confidence": scene_result.vlm_confidence})
+    analyzer = VLMAdapter(model=settings.nvidia_model, request=provider_request if settings.nvidia_api_key or settings.vlm_provider_api_key else None, timeout_seconds=settings.vlm_provider_timeout_seconds)
+    for track_id in track_ids:
+        for crop in crop_builder.selected(track_id):
+            stored = artifact_store.get(crop.artifact_ref)
+            if stored is None:
+                continue
+            vlm_result = await analyzer.analyze(track_id=track_id, crop=stored[0], artifact_ref=crop.artifact_ref, evidence_id=f"vlm-{mission_id}-{track_id}-{crop.artifact_ref[-8:]}")
+            emit("SCENE_ANALYZED", crop.timestamp_seconds, track_id=track_id, refs=[vlm_result.evidence_id, crop.artifact_ref], payload=vlm_result.model_dump())
     summary = project_summary(mission_id, event_store.list_events(mission_id))
     return {"mission_id": mission_id, "summary": summary.model_dump(), "event_count": summary.event_count, "events_url": f"/missions/{mission_id}/events", "artifacts": artifact_refs, "video": result.model_dump()}
 

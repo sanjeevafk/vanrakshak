@@ -16,6 +16,7 @@ Date: 2026-07-23
 - Frontend projections consume backend mission state and events.
 - The reusable perception pipeline emits evidence-linked detection and track events with deterministic fallback IDs.
 - Uploaded video missions now feed detections into threat assessment, independent policies, incident transitions, and simulated commands.
+- Selected per-track crop artifacts are sent through the bounded VLM adapter, with cache, timeout, and fallback metadata recorded as scene-analysis events.
 - Replay controls are backend-owned and expose cursor, play/pause, reset, step, and speed state.
 - Telemetry projections include both the latest sample and replay history.
 
