@@ -1,5 +1,5 @@
 export type MissionEvent = { sequence: number; timestamp_seconds: number; type: string; track_id?: number; evidence_refs: string[]; payload: Record<string, unknown> };
-export type MissionSummary = { mission_id: string; mission_state: string; incidents: Record<string, string>; latest_tracks: Record<string, Record<string, unknown>>; latest_threats: Record<string, Record<string, unknown>>; commands: Array<Record<string, unknown>>; telemetry: Record<string, any>; event_count: number };
+export type MissionSummary = { mission_id: string; mission_state: string; incidents: Record<string, string>; latest_tracks: Record<string, Record<string, unknown>>; latest_threats: Record<string, Record<string, unknown>>; commands: Array<Record<string, unknown>>; telemetry: Record<string, any>; telemetry_history: Array<Record<string, any>>; event_count: number };
 export type MissionRunOptions = { ticks?: number; wildlife?: boolean };
 
 export class MissionService {
