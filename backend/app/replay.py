@@ -44,6 +44,7 @@ class MissionRunner:
         emit("MISSION_STARTED", "mission_control", payload={"state": state.value})
         for _ in range(max(0, ticks)):
             now = clock.tick()
+            emit("TELEMETRY_UPDATED", "telemetry_simulator", payload={"battery_pct": round(100 - now * 0.8, 2), "gps": {"lat": 13.083 + now * .0001, "lng": 80.272 + now * .0001}, "wind_mps": 3.2})
             evidence_id = f"obs-{mission_id}-{sequence + 1:05d}"
             emit("DETECTION_OBSERVED", "perception", track_id=track_id, evidence_refs=[evidence_id], payload={"class_name": "elephant" if wildlife else "person", "confidence": 0.92})
             emit("TRACK_UPDATED", "perception", track_id=track_id, evidence_refs=[evidence_id], payload={"class_name": "elephant" if wildlife else "person", "confidence": 0.92, "timestamp_seconds": now})

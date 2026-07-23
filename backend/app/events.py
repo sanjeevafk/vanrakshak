@@ -87,6 +87,7 @@ class MissionSummary(BaseModel):
     latest_tracks: dict[str, dict[str, Any]] = Field(default_factory=dict)
     latest_threats: dict[str, dict[str, Any]] = Field(default_factory=dict)
     commands: list[dict[str, Any]] = Field(default_factory=list)
+    telemetry: dict[str, Any] = Field(default_factory=dict)
     event_count: int = 0
 
 
@@ -133,6 +134,7 @@ def project_summary(mission_id: str, events: list[MissionEvent]) -> MissionSumma
     tracks: dict[str, dict[str, Any]] = {}
     threats: dict[str, dict[str, Any]] = {}
     commands: list[dict[str, Any]] = []
+    telemetry: dict[str, Any] = {}
     for event in events:
         if event.type == "MISSION_STATE_CHANGED":
             state = event.payload["next_state"]
@@ -144,7 +146,9 @@ def project_summary(mission_id: str, events: list[MissionEvent]) -> MissionSumma
             threats[str(event.track_id)] = event.payload
         elif event.type == "COMMAND_EMITTED":
             commands.append(event.payload)
-    return MissionSummary(mission_id=mission_id, mission_state=state, incidents=incidents, latest_tracks=tracks, latest_threats=threats, commands=commands, event_count=len(events))
+        elif event.type == "TELEMETRY_UPDATED":
+            telemetry = event.payload
+    return MissionSummary(mission_id=mission_id, mission_state=state, incidents=incidents, latest_tracks=tracks, latest_threats=threats, commands=commands, telemetry=telemetry, event_count=len(events))
 
 
 def make_event(mission_id: str, sequence: int, timestamp: float, event_type: str, source: str, **kwargs: Any) -> MissionEvent:
