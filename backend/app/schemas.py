@@ -19,10 +19,22 @@ class DetectionResponse(BaseModel):
     source: Literal["YOLO", "FALLBACK"]
 
 
+class VideoFrameResponse(BaseModel):
+    frame_index: int = Field(ge=0)
+    timestamp_seconds: float = Field(ge=0)
+    detections: list[Detection]
+
+
+class VideoDetectionResponse(BaseModel):
+    frame_count: int = Field(ge=0)
+    fps: float = Field(ge=0)
+    source: Literal["YOLO", "FALLBACK"]
+    frames: list[VideoFrameResponse]
+
+
 class SceneResponse(BaseModel):
     scene_summary: str
     activity_type: ActivityType
     behavior_rating: BehaviorRating
     vlm_confidence: float = Field(ge=0, le=1)
     reason: str | None = None
-
