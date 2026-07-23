@@ -4,7 +4,7 @@ import tempfile
 from .schemas import Detection, VideoDetectionResponse, VideoFrameResponse
 
 
-def process_video(payload: bytes, sample_every_n_frames: int = 5) -> VideoDetectionResponse:
+def process_video(payload: bytes, sample_every_n_frames: int = 5, model_name: str = "yolov8n.pt", tracker_name: str = "botsort.yaml") -> VideoDetectionResponse:
     """Process an MP4 using YOLO tracking when available.
 
     Model weights are loaded at runtime by ultralytics. If OpenCV/model loading is
@@ -14,7 +14,7 @@ def process_video(payload: bytes, sample_every_n_frames: int = 5) -> VideoDetect
         return VideoDetectionResponse(frame_count=0, fps=0, source="FALLBACK", frames=[])
     try:
         import cv2
-        from ultralytics import YOLO
+        from ultralytics import YOLO, RTDETR
 
         with tempfile.NamedTemporaryFile(suffix=Path(".mp4").name, delete=True) as temp:
             temp.write(payload)
@@ -22,7 +22,7 @@ def process_video(payload: bytes, sample_every_n_frames: int = 5) -> VideoDetect
             capture = cv2.VideoCapture(temp.name)
             fps = float(capture.get(cv2.CAP_PROP_FPS) or 0)
             total = int(capture.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
-            model = YOLO("yolov8n.pt")
+            model = RTDETR(model_name) if model_name.lower().startswith("rtdetr") else YOLO(model_name)
             frames: list[VideoFrameResponse] = []
             representative_frame: str | None = None
             index = 0
@@ -37,7 +37,7 @@ def process_video(payload: bytes, sample_every_n_frames: int = 5) -> VideoDetect
                         encoded_ok, encoded = cv2.imencode(".jpg", frame)
                         if encoded_ok:
                             representative_frame = base64.b64encode(encoded.tobytes()).decode("ascii")
-                    result = model.track(frame, persist=True, verbose=False)[0]
+                    result = model.track(frame, persist=True, tracker=tracker_name, verbose=False)[0]
                     detections: list[Detection] = []
                     seen_track_ids: set[int] = set()
                     if result.boxes is not None:
