@@ -12,12 +12,14 @@ from .actuator import ActuatorAdapter
 from .mission import ThreatInput, threat_score
 from .state_machines import transition_incident
 from .events import IncidentState
+from .replay_session import ReplaySessionStore
 from pydantic import BaseModel, Field
 
 app = FastAPI(title="VanRakshak Inference API", version="0.1.0")
 event_store = InMemoryEventStore()
 runner = MissionRunner(event_store)
 artifact_store = InMemoryArtifactStore()
+replay_sessions = ReplaySessionStore()
 
 class MissionCreate(BaseModel):
     mission_id: str | None = None
@@ -129,6 +131,30 @@ def mission_events(mission_id: str, after_sequence: int | None = Query(default=N
 @app.get("/missions/{mission_id}/summary")
 def mission_summary(mission_id: str) -> dict:
     return project_summary(mission_id, event_store.list_events(mission_id)).model_dump()
+
+@app.get("/missions/{mission_id}/replay")
+def replay_state(mission_id: str) -> dict:
+    return replay_sessions.state(mission_id, event_store.get_last_sequence(mission_id))
+
+@app.post("/missions/{mission_id}/replay/start")
+def replay_start(mission_id: str, speed: float = Query(default=1.0, gt=0, le=8)) -> dict:
+    session = replay_sessions.get(mission_id); session.playing = True; session.speed = speed
+    return replay_sessions.state(mission_id, event_store.get_last_sequence(mission_id))
+
+@app.post("/missions/{mission_id}/replay/pause")
+def replay_pause(mission_id: str) -> dict:
+    replay_sessions.get(mission_id).playing = False
+    return replay_sessions.state(mission_id, event_store.get_last_sequence(mission_id))
+
+@app.post("/missions/{mission_id}/replay/reset")
+def replay_reset(mission_id: str) -> dict:
+    replay_sessions.reset(mission_id)
+    return replay_sessions.state(mission_id, event_store.get_last_sequence(mission_id))
+
+@app.post("/missions/{mission_id}/replay/step")
+def replay_step(mission_id: str) -> dict:
+    replay_sessions.step(mission_id, event_store.get_last_sequence(mission_id))
+    return replay_sessions.state(mission_id, event_store.get_last_sequence(mission_id))
 
 @app.get("/missions/{mission_id}")
 def mission(mission_id: str) -> dict:
