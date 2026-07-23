@@ -74,6 +74,21 @@ def extract_crop(frame_bytes: bytes, bbox: list[float], *, image_format: str = "
     except ImportError as error:
         raise RuntimeError("opencv is required for crop extraction") from error
 
+class TrackEvidenceBuilder:
+    def __init__(self, artifacts: InMemoryArtifactStore, selector: CropSelector | None = None) -> None:
+        self.artifacts = artifacts
+        self.selector = selector or CropSelector(max_per_track=3)
+        self._candidates: dict[int, list[CropCandidate]] = {}
+
+    def add(self, *, track_id: int, frame_bytes: bytes, bbox: list[float], timestamp_seconds: float, detector_confidence: float, area: float = 0.0, sharpness: float = 0.0) -> CropCandidate:
+        crop = extract_crop(frame_bytes, bbox)
+        candidate = CropCandidate(track_id, timestamp_seconds, self.artifacts.put(crop), detector_confidence, area, sharpness)
+        self._candidates.setdefault(track_id, []).append(candidate)
+        return candidate
+
+    def selected(self, track_id: int) -> list[CropCandidate]:
+        return self.selector.select(self._candidates.get(track_id, []))
+
 def filter_detections(detections: list[Detection], confidence_threshold: float = 0.35) -> list[Detection]:
     return [d for d in detections if d.confidence >= confidence_threshold]
 

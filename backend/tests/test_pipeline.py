@@ -1,5 +1,5 @@
 from app.events import InMemoryEventStore
-from app.perception import EvidenceStore, InMemoryArtifactStore, PerceptionPipeline, extract_crop
+from app.perception import EvidenceStore, InMemoryArtifactStore, PerceptionPipeline, TrackEvidenceBuilder, extract_crop
 from app.events import Evidence
 from app.schemas import Detection
 
@@ -28,3 +28,12 @@ def test_extract_crop_clamps_bounds():
     ok, encoded = cv2.imencode(".jpg", np.zeros((20, 20, 3), dtype=np.uint8))
     crop = extract_crop(encoded.tobytes(), [-5, -5, 10, 10])
     assert crop and crop != encoded.tobytes()
+
+def test_track_evidence_builder_stores_bounded_crop_artifacts():
+    import cv2
+    import numpy as np
+    ok, encoded = cv2.imencode(".jpg", np.zeros((20, 20, 3), dtype=np.uint8))
+    builder = TrackEvidenceBuilder(InMemoryArtifactStore())
+    for timestamp in range(5):
+        builder.add(track_id=4, frame_bytes=encoded.tobytes(), bbox=[0, 0, 10, 10], timestamp_seconds=timestamp, detector_confidence=.8)
+    assert len(builder.selected(4)) <= 3
