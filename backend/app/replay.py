@@ -4,6 +4,10 @@ from dataclasses import dataclass
 
 from .events import InMemoryEventStore, MissionDiagnostics, MissionSummary, make_event, project_summary
 from .mission import MissionState, ThreatInput, threat_score
+from .policies import PolicyEngine
+from .actuator import ActuatorAdapter
+from .state_machines import transition_incident
+from .events import IncidentState
 
 
 @dataclass
@@ -26,6 +30,9 @@ class MissionRunner:
         self.store.clear(mission_id)
         clock = ReplayClock()
         state = MissionState.PATROL
+        incident_state = IncidentState.OBSERVED
+        policies = PolicyEngine()
+        actuator = ActuatorAdapter(mission_id)
         sequence = 0
         track_id = 2 if wildlife else 1
 
@@ -42,6 +49,15 @@ class MissionRunner:
             emit("TRACK_UPDATED", "perception", track_id=track_id, evidence_refs=[evidence_id], payload={"class_name": "elephant" if wildlife else "person", "confidence": 0.92, "timestamp_seconds": now})
             score = threat_score(ThreatInput(vlm_confidence=0.9, detector_confidence=0.92, zone_risk=0.8, acoustic_score=0.3))
             emit("THREAT_ASSESSED", "threat_engine", track_id=track_id, evidence_refs=[evidence_id], payload={"score": score, "policy_id": "wildlife_proximity" if wildlife else "human_intrusion"})
+            decisions = policies.evaluate({"class_name": "elephant" if wildlife else "person", "confidence": .92, "persistent": True, "vlm_confirmed": not wildlife, "track_id": track_id, "evidence_refs": [evidence_id]})
+            for decision in decisions:
+                emit("POLICY_EVALUATED", "policy_engine", track_id=track_id, evidence_refs=[evidence_id], payload=decision.model_dump())
+                incident_transition = transition_incident(incident_state, persistent=True, verified=decision.decision == "RECOMMEND_ALERT")
+                incident_state = incident_transition.next_state
+                emit("INCIDENT_STATE_CHANGED", "incident_state_machine", track_id=track_id, evidence_refs=[evidence_id], payload={"previous_state": incident_transition.previous_state, "next_state": incident_transition.next_state, "reason_code": incident_transition.reason_code, "explanation": incident_transition.explanation})
+                for command in decision.recommended_actions:
+                    command_event = actuator.emit(command, timestamp_seconds=now, incident_id=f"incident-{track_id}", evidence_refs=[evidence_id], policy_id=decision.policy_id)
+                    emit("COMMAND_EMITTED", "actuator", track_id=track_id, evidence_refs=[evidence_id], payload=command_event.model_dump())
             if state == MissionState.PATROL:
                 next_state = MissionState.INVESTIGATE
             elif state == MissionState.INVESTIGATE:
