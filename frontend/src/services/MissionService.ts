@@ -1,12 +1,17 @@
 export type MissionEvent = { sequence: number; timestamp_seconds: number; type: string; track_id?: number; evidence_refs: string[]; payload: Record<string, unknown> };
 export type MissionSummary = { mission_id: string; mission_state: string; incidents: Record<string, string>; latest_tracks: Record<string, Record<string, unknown>>; latest_threats: Record<string, Record<string, unknown>>; commands: Array<Record<string, unknown>>; event_count: number };
+export type MissionRunOptions = { ticks?: number; wildlife?: boolean };
+
 export class MissionService {
   constructor(private readonly baseUrl = "http://127.0.0.1:8000") {}
-  async run(ticks = 3): Promise<{ summary: MissionSummary; events: MissionEvent[] }> {
-    const created = await fetch(`${this.baseUrl}/missions`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
+  async run(options: MissionRunOptions | number = {}): Promise<{ summary: MissionSummary; events: MissionEvent[] }> {
+    const opts: MissionRunOptions = typeof options === "number" ? { ticks: options } : options;
+    const ticks = opts.ticks ?? 3;
+    const wildlife = opts.wildlife ?? false;
+    const created = await fetch(`${this.baseUrl}/missions`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ wildlife }) });
     if (!created.ok) throw new Error(`Mission creation failed: ${created.status}`);
     const { mission_id } = await created.json();
-    const run = await fetch(`${this.baseUrl}/missions/${mission_id}/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ticks }) });
+    const run = await fetch(`${this.baseUrl}/missions/${mission_id}/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ticks, wildlife }) });
     if (!run.ok) throw new Error(`Mission run failed: ${run.status}`);
     const body = await run.json();
     const eventsResponse = await fetch(`${this.baseUrl}${body.events_url}`);

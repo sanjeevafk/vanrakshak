@@ -23,8 +23,10 @@ def test_battery_and_geofence_overrides():
 
 def test_wildlife_railway_and_suppressant_commands():
     adapter = ActuatorAdapter("scenario")
-    wildlife = adapter.for_policy("railway_conflict", incident_id="wildlife-1")
+    wildlife = adapter.for_policy("wildlife_proximity", incident_id="wildlife-1")
     assert {command.command for command in wildlife} == {"WILDLIFE_ALERT", "DISPATCH_RANGER"}
+    railway = adapter.for_policy("railway_conflict", incident_id="railway-1")
+    assert railway[0].status == "UNAVAILABLE"
     assert adapter.emit("FIRE_SUPPRESSANT_DEPLOY").status == "UNAVAILABLE"
 
 def test_vlm_timeout_fallback_scenario():

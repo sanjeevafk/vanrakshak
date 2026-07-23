@@ -77,6 +77,7 @@ class CommandEvent(BaseModel):
     mission_id: str
     incident_id: str | None = None
     evidence_refs: list[str] = Field(default_factory=list)
+    policy_id: str | None = None
 
 
 class MissionSummary(BaseModel):

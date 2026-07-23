@@ -41,7 +41,7 @@ def process_video(payload: bytes, sample_every_n_frames: int = 2, model_name: st
                     detections: list[Detection] = []
                     seen_track_ids: set[int] = set()
                     if result.boxes is not None:
-                        for box in result.boxes:
+                        for box in result.boxes:  # type: ignore[attr-defined]
                             xyxy = box.xyxy[0].tolist()
                             raw_id = int(box.id[0].item()) if box.id is not None else None
                             # A tracker ID must be unique within a frame. Some tracker/model
