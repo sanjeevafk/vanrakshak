@@ -4,7 +4,7 @@ import tempfile
 from .schemas import Detection, VideoDetectionResponse, VideoFrameResponse
 
 
-def process_video(payload: bytes, sample_every_n_frames: int = 5, model_name: str = "yolov8n.pt", tracker_name: str = "botsort.yaml") -> VideoDetectionResponse:
+def process_video(payload: bytes, sample_every_n_frames: int = 2, model_name: str = "yolov8n.pt", tracker_name: str = "bytetrack.yaml", confidence_threshold: float = 0.35) -> VideoDetectionResponse:
     """Process an MP4 using YOLO tracking when available.
 
     Model weights are loaded at runtime by ultralytics. If OpenCV/model loading is
@@ -37,7 +37,7 @@ def process_video(payload: bytes, sample_every_n_frames: int = 5, model_name: st
                         encoded_ok, encoded = cv2.imencode(".jpg", frame)
                         if encoded_ok:
                             representative_frame = base64.b64encode(encoded.tobytes()).decode("ascii")
-                    result = model.track(frame, persist=True, tracker=tracker_name, verbose=False)[0]
+                    result = model.track(frame, persist=True, tracker=tracker_name, conf=confidence_threshold, verbose=False)[0]
                     detections: list[Detection] = []
                     seen_track_ids: set[int] = set()
                     if result.boxes is not None:
@@ -54,6 +54,8 @@ def process_video(payload: bytes, sample_every_n_frames: int = 5, model_name: st
                             seen_track_ids.add(track_id)
                             class_id = int(box.cls[0].item())
                             confidence = float(box.conf[0].item())
+                            if confidence < confidence_threshold:
+                                continue
                             detections.append(Detection(track_id=track_id, **{"class": model.names[class_id]}, confidence=confidence, bbox=xyxy))
                     frames.append(VideoFrameResponse(frame_index=index, timestamp_seconds=index / fps if fps else 0, detections=detections))
                 index += 1

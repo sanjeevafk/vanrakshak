@@ -16,10 +16,12 @@ def main() -> None:
     ]
     if "--yolo-only" in sys.argv:
         cases = cases[:2]
+    if "--bytetrack-only" in sys.argv:
+        cases = cases[1:2]
     results = []
     for label, model, tracker in cases:
         started = time.perf_counter()
-        response = process_video(payload, sample_every_n_frames=5, model_name=model, tracker_name=tracker)
+        response = process_video(payload, sample_every_n_frames=2, model_name=model, tracker_name=tracker)
         elapsed = time.perf_counter() - started
         ids = [d.track_id for frame in response.frames for d in frame.detections]
         results.append({
