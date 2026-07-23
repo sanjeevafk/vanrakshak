@@ -25,4 +25,10 @@ async def detect_video(file: UploadFile = File(...)) -> VideoDetectionResponse:
 @app.post("/scene-understanding", response_model=SceneResponse)
 async def understand(image: str) -> SceneResponse:
     settings = get_settings()
-    return await scene_understanding(image, settings.vlm_provider_url, settings.vlm_provider_api_key)
+    return await scene_understanding(
+        image,
+        settings.vlm_provider_url or settings.nvidia_api_url,
+        settings.vlm_provider_api_key or settings.nvidia_api_key,
+        settings.nvidia_model,
+        settings.vlm_provider_timeout_seconds,
+    )
