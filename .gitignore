@@ -6,5 +6,10 @@ node_modules/
 dist/
 .pytest_cache/
 .coverage
-.mp4/
-demo_videos
+*.mp4
+demo_videos/
+*.pt
+*.engine
+*.onnx
+weights/
+.cache/
