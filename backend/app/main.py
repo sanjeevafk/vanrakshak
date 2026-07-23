@@ -112,6 +112,9 @@ async def run_video_mission(mission_id: str, file: UploadFile = File(...)) -> di
                 for command_name in decision.recommended_actions:
                     command = actuator.emit(command_name, timestamp_seconds=frame.timestamp_seconds, incident_id=f"incident-{detection.track_id}", evidence_refs=refs, policy_id=decision.policy_id)
                     emit("COMMAND_EMITTED", frame.timestamp_seconds, track_id=detection.track_id, refs=refs, payload=command.model_dump())
+                    acknowledged = actuator.acknowledge(command.command_id)
+                    if acknowledged:
+                        emit("COMMAND_ACKNOWLEDGED", frame.timestamp_seconds, track_id=detection.track_id, refs=refs, payload={"command_id": acknowledged.command_id, "command": acknowledged.command, "status": acknowledged.status})
     artifact_refs: list[str] = []
     if result.representative_frame:
         artifact_refs.append(artifact_store.put(base64.b64decode(result.representative_frame)))

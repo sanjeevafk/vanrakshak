@@ -26,7 +26,7 @@ class MissionRunner:
     def __init__(self, store: InMemoryEventStore) -> None:
         self.store = store
 
-    def run(self, mission_id: str, ticks: int = 3, *, wildlife: bool = False) -> tuple[MissionSummary, MissionDiagnostics]:
+    def run(self, mission_id: str, ticks: int = 3, *, wildlife: bool = False, vlm_confirmed: bool = True) -> tuple[MissionSummary, MissionDiagnostics]:
         self.store.clear(mission_id)
         clock = ReplayClock()
         state = MissionState.PATROL
@@ -50,7 +50,7 @@ class MissionRunner:
             emit("TRACK_UPDATED", "perception", track_id=track_id, evidence_refs=[evidence_id], payload={"class_name": "elephant" if wildlife else "person", "confidence": 0.92, "timestamp_seconds": now})
             score = threat_score(ThreatInput(vlm_confidence=0.9, detector_confidence=0.92, zone_risk=0.8, acoustic_score=0.3))
             emit("THREAT_ASSESSED", "threat_engine", track_id=track_id, evidence_refs=[evidence_id], payload={"score": score, "policy_id": "wildlife_proximity" if wildlife else "human_intrusion"})
-            decisions = policies.evaluate({"class_name": "elephant" if wildlife else "person", "confidence": .92, "persistent": True, "vlm_confirmed": not wildlife, "track_id": track_id, "evidence_refs": [evidence_id]})
+            decisions = policies.evaluate({"class_name": "elephant" if wildlife else "person", "confidence": .92, "persistent": True, "vlm_confirmed": vlm_confirmed, "track_id": track_id, "evidence_refs": [evidence_id]})
             for decision in decisions:
                 t_id = decision.track_id if decision.track_id is not None else track_id
                 emit("POLICY_EVALUATED", "policy_engine", track_id=t_id, evidence_refs=[evidence_id], payload=decision.model_dump())
@@ -74,6 +74,9 @@ class MissionRunner:
                 for command in decision.recommended_actions:
                     command_event = actuator.emit(command, timestamp_seconds=now, incident_id=f"incident-{t_id}", evidence_refs=[evidence_id], policy_id=decision.policy_id)
                     emit("COMMAND_EMITTED", "actuator", track_id=t_id, evidence_refs=[evidence_id], payload=command_event.model_dump())
+                    acknowledged = actuator.acknowledge(command_event.command_id)
+                    if acknowledged:
+                        emit("COMMAND_ACKNOWLEDGED", "actuator", track_id=t_id, evidence_refs=[evidence_id], payload={"command_id": acknowledged.command_id, "command": acknowledged.command, "status": acknowledged.status})
             if state == MissionState.PATROL:
                 next_state = MissionState.INVESTIGATE
             elif state == MissionState.INVESTIGATE:

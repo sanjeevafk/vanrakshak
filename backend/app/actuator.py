@@ -21,6 +21,13 @@ class ActuatorAdapter:
             return next(item for item in self.emitted if item.command == command and item.incident_id == incident_id)
         return event
 
+    def acknowledge(self, command_id: str) -> CommandEvent | None:
+        for command in self.emitted:
+            if command.command_id == command_id and command.status == "SENT":
+                command.status = "ACKNOWLEDGED"
+                return command
+        return None
+
     def for_mission_state(self, state: str, *, timestamp_seconds: float = 0.0, evidence_refs: list[str] | None = None) -> CommandEvent:
         return self.emit(MISSION_COMMANDS[state], timestamp_seconds=timestamp_seconds, evidence_refs=evidence_refs)
 

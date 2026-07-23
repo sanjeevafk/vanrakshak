@@ -53,4 +53,21 @@ def test_incident_state_isolated_per_track():
     assert summary_human.incidents.get("1") == "VERIFIED"
     assert summary_wildlife.incidents.get("2") == "PERSISTING"
 
+def test_acknowledgements_are_explicit_events():
+    store = InMemoryEventStore()
+    MissionRunner(store).run("m1", ticks=1)
+    assert any(event.type == "COMMAND_ACKNOWLEDGED" for event in store.list_events("m1"))
+
+
+def test_vlm_confirmed_passed_directly_to_policy_evaluation():
+    store = InMemoryEventStore()
+    runner = MissionRunner(store)
+    # When vlm_confirmed is False, human intrusion policy decision is RECOMMEND_REVIEW instead of RECOMMEND_ALERT
+    summary_unconfirmed, _ = runner.run("m_unconfirmed", ticks=1, wildlife=False, vlm_confirmed=False)
+    events = store.list_events("m_unconfirmed")
+    policy_events = [e for e in events if e.type == "POLICY_EVALUATED"]
+    assert len(policy_events) > 0
+    assert policy_events[0].payload["decision"] == "RECOMMEND_REVIEW"
+    assert summary_unconfirmed.incidents.get("1") == "PERSISTING"
+
 
