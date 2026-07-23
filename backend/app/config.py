@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     vlm_provider_timeout_seconds: float = 10.0
     nvidia_api_key: str | None = Field(default=None, repr=False)
     nvidia_api_url: str = "https://integrate.api.nvidia.com/v1/chat/completions"
-    nvidia_model: str = "meta/llama-3.1-8b-instruct"
+    nvidia_model: str = "meta/llama-3.2-11b-vision-instruct"
     model_config = SettingsConfigDict(env_file=(".env", "../.env"), extra="ignore")
 
 

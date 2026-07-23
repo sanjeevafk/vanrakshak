@@ -23,4 +23,4 @@ def test_scene_fallback():
 def test_video_detection_contract_for_empty_upload():
     response = client.post("/detect/video", files={"file": ("clip.mp4", b"", "video/mp4")})
     assert response.status_code == 200
-    assert response.json() == {"frame_count": 0, "fps": 0.0, "source": "FALLBACK", "frames": []}
+    assert response.json() == {"frame_count": 0, "fps": 0.0, "source": "FALLBACK", "frames": [], "representative_frame": None}

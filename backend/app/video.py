@@ -24,6 +24,7 @@ def process_video(payload: bytes, sample_every_n_frames: int = 5) -> VideoDetect
             total = int(capture.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
             model = YOLO("yolov8n.pt")
             frames: list[VideoFrameResponse] = []
+            representative_frame: str | None = None
             index = 0
             next_fallback_id = 1_000_000
             while True:
@@ -31,6 +32,11 @@ def process_video(payload: bytes, sample_every_n_frames: int = 5) -> VideoDetect
                 if not ok:
                     break
                 if index % max(1, sample_every_n_frames) == 0:
+                    if representative_frame is None:
+                        import base64
+                        encoded_ok, encoded = cv2.imencode(".jpg", frame)
+                        if encoded_ok:
+                            representative_frame = base64.b64encode(encoded.tobytes()).decode("ascii")
                     result = model.track(frame, persist=True, verbose=False)[0]
                     detections: list[Detection] = []
                     seen_track_ids: set[int] = set()
@@ -52,6 +58,6 @@ def process_video(payload: bytes, sample_every_n_frames: int = 5) -> VideoDetect
                     frames.append(VideoFrameResponse(frame_index=index, timestamp_seconds=index / fps if fps else 0, detections=detections))
                 index += 1
             capture.release()
-            return VideoDetectionResponse(frame_count=total or index, fps=fps, source="YOLO", frames=frames)
+            return VideoDetectionResponse(frame_count=total or index, fps=fps, source="YOLO", frames=frames, representative_frame=representative_frame)
     except Exception:
         return VideoDetectionResponse(frame_count=0, fps=0, source="FALLBACK", frames=[])

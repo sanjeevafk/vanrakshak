@@ -30,6 +30,7 @@ class VideoDetectionResponse(BaseModel):
     fps: float = Field(ge=0)
     source: Literal["YOLO", "FALLBACK"]
     frames: list[VideoFrameResponse]
+    representative_frame: str | None = None
 
 
 class SceneResponse(BaseModel):
