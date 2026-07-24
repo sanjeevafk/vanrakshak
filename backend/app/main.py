@@ -2,7 +2,7 @@ from fastapi import FastAPI, File, UploadFile, Query, HTTPException, Response
 import base64
 import json
 from .config import get_settings
-from .schemas import DetectionResponse, SceneResponse, VideoDetectionResponse
+from .schemas import DetectionResponse, SceneResponse, VideoDetectionResponse, SceneRequest
 from .services import detect_bytes, scene_understanding
 from .video import process_video
 from .events import InMemoryEventStore, project_summary, make_event
@@ -17,7 +17,17 @@ from .vlm import VLMAdapter
 from .replay_session import ReplaySessionStore
 from pydantic import BaseModel, Field
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(title="VanRakshak Inference API", version="0.1.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 event_store = InMemoryEventStore()
 runner = MissionRunner(event_store)
 artifact_store = InMemoryArtifactStore()
@@ -49,10 +59,10 @@ async def detect_video(file: UploadFile = File(...)) -> VideoDetectionResponse:
 
 
 @app.post("/scene-understanding", response_model=SceneResponse)
-async def understand(image: str) -> SceneResponse:
+async def understand(request: SceneRequest) -> SceneResponse:
     settings = get_settings()
     return await scene_understanding(
-        image,
+        request.image,
         settings.vlm_provider_url or settings.nvidia_api_url,
         settings.vlm_provider_api_key or settings.nvidia_api_key,
         settings.nvidia_model,
@@ -97,6 +107,7 @@ async def run_video_mission(mission_id: str, file: UploadFile = File(...)) -> di
         event_store.append(make_event(mission_id, sequence, timestamp, event_type, "perception" if event_type in {"FRAME_PROCESSED", "DETECTION_OBSERVED", "TRACK_UPDATED"} else "mission_control", track_id=track_id, evidence_refs=refs or [], payload=payload or {}))
     for frame in result.frames:
         emit("FRAME_PROCESSED", frame.timestamp_seconds, payload={"frame_index": frame.frame_index, "detector_source": result.source})
+        emit("TELEMETRY_UPDATED", frame.timestamp_seconds, payload={"battery_pct": round(max(0, min(100, 100 - frame.timestamp_seconds * 0.8)), 2), "gps": {"lat": round(13.083 + frame.timestamp_seconds * .0001, 6), "lng": round(80.272 + frame.timestamp_seconds * .0001, 6)}, "wind_mps": 3.2})
         for detection in frame.detections:
             if not state_transition_emitted:
                 mission_state = MissionState.INVESTIGATE

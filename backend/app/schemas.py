@@ -39,3 +39,7 @@ class SceneResponse(BaseModel):
     behavior_rating: BehaviorRating
     vlm_confidence: float = Field(ge=0, le=1)
     reason: str | None = None
+
+
+class SceneRequest(BaseModel):
+    image: str

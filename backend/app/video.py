@@ -60,7 +60,12 @@ def process_video(payload: bytes, sample_every_n_frames: int = 2, model_name: st
                             detections.append(Detection(track_id=track_id, **{"class": model.names[class_id]}, confidence=confidence, bbox=xyxy))
                     timestamp = index / fps if fps else 0
                     if on_sample:
-                        on_sample(frame, index, timestamp, detections)
+                        try:
+                            on_sample(frame, index, timestamp, detections)
+                        except Exception:
+                            # Evidence extraction is best-effort; never discard valid
+                            # detector/tracker output because one crop is invalid.
+                            pass
                     frames.append(VideoFrameResponse(frame_index=index, timestamp_seconds=timestamp, detections=detections))
                 index += 1
             capture.release()

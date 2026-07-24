@@ -29,10 +29,7 @@ export default function App() {
       const hasWildlife = next.frames.some((frame) =>
         frame.detections.some((det) => ["elephant", "animal", "wildlife"].includes(det.class.toLowerCase()))
       );
-      const replay = await missions.run({
-        ticks: Math.max(3, next.frames.length),
-        wildlife: hasWildlife,
-      });
+      const replay = await missions.runVideo(file);
       setMission(replay.summary);
       setEvents(replay.events);
       setEventCursor(0);

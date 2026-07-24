@@ -16,7 +16,7 @@ def test_detect_contract():
 
 
 def test_scene_fallback():
-    body = client.post("/scene-understanding", params={"image": "aW1hZ2U="}).json()
+    body = client.post("/scene-understanding", json={"image": "aW1hZ2U="}).json()
     assert body["reason"] == "VLM_UNREACHABLE"
 
 
