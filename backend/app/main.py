@@ -1,6 +1,8 @@
 from fastapi import FastAPI, File, UploadFile, Query, HTTPException, Response
+from fastapi.staticfiles import StaticFiles
 import base64
 import json
+import os
 from .config import get_settings
 from .schemas import DetectionResponse, SceneResponse, VideoDetectionResponse, SceneRequest
 from .services import detect_bytes, scene_understanding
@@ -28,6 +30,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve demo assets over HTTP so the presentation's local videos play reliably
+# (file:// media can be blocked by preview tools). Same-origin in dev:
+#   http://127.0.0.1:8000/presentation/vanrakshak_msme_presentation.html
+_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+_demo_videos = os.path.join(_root, "demo_videos")
+_docs = os.path.join(_root, "docs")
+if os.path.isdir(_demo_videos):
+    app.mount("/demo_videos", StaticFiles(directory=_demo_videos), name="demo-videos")
+if os.path.isdir(_docs):
+    app.mount("/presentation", StaticFiles(directory=_docs, html=True), name="presentation")
+
 event_store = InMemoryEventStore()
 runner = MissionRunner(event_store)
 artifact_store = InMemoryArtifactStore()
@@ -41,6 +55,7 @@ class MissionRun(BaseModel):
     ticks: int = Field(default=3, ge=0, le=300)
     wildlife: bool = False
     vlm_confirmed: bool = True
+    activity: str | None = None
 
 
 @app.get("/health")
@@ -79,7 +94,7 @@ def create_mission(request: MissionCreate) -> dict:
 @app.post("/missions/{mission_id}/run")
 def run_mission(mission_id: str, request: MissionRun | None = None) -> dict:
     request = request or MissionRun()
-    summary, diagnostics = runner.run(mission_id, request.ticks, wildlife=request.wildlife, vlm_confirmed=request.vlm_confirmed)
+    summary, diagnostics = runner.run(mission_id, request.ticks, wildlife=request.wildlife, vlm_confirmed=request.vlm_confirmed, activity=request.activity)
     return {"mission_id": mission_id, "summary": summary.model_dump(), "event_count": summary.event_count, "events_url": f"/missions/{mission_id}/events", "diagnostics": diagnostics.model_dump()}
 
 @app.post("/missions/{mission_id}/run/video")

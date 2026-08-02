@@ -26,7 +26,7 @@ class MissionRunner:
     def __init__(self, store: InMemoryEventStore) -> None:
         self.store = store
 
-    def run(self, mission_id: str, ticks: int = 3, *, wildlife: bool = False, vlm_confirmed: bool = True) -> tuple[MissionSummary, MissionDiagnostics]:
+    def run(self, mission_id: str, ticks: int = 3, *, wildlife: bool = False, vlm_confirmed: bool = True, activity: str | None = None) -> tuple[MissionSummary, MissionDiagnostics]:
         self.store.clear(mission_id)
         clock = ReplayClock()
         state = MissionState.PATROL
@@ -48,6 +48,8 @@ class MissionRunner:
             evidence_id = f"obs-{mission_id}-{sequence + 1:05d}"
             emit("DETECTION_OBSERVED", "perception", track_id=track_id, evidence_refs=[evidence_id], payload={"class_name": "elephant" if wildlife else "person", "confidence": 0.92})
             emit("TRACK_UPDATED", "perception", track_id=track_id, evidence_refs=[evidence_id], payload={"class_name": "elephant" if wildlife else "person", "confidence": 0.92, "timestamp_seconds": now})
+            if activity:
+                emit("SCENE_ANALYZED", "vlm_adapter", track_id=track_id, evidence_refs=[evidence_id], payload={"activity_type": activity, "scene_summary": f"Persistent human track in a protected forest zone — {activity.replace('_', ' ').title()}.", "behavior_rating": "HIGH", "vlm_confidence": 0.90, "source": "synthetic_demo"})
             score = threat_score(ThreatInput(vlm_confidence=0.9, detector_confidence=0.92, zone_risk=0.8, acoustic_score=0.3))
             emit("THREAT_ASSESSED", "threat_engine", track_id=track_id, evidence_refs=[evidence_id], payload={"score": score, "policy_id": "wildlife_proximity" if wildlife else "human_intrusion"})
             decisions = policies.evaluate({"class_name": "elephant" if wildlife else "person", "confidence": .92, "persistent": True, "vlm_confirmed": vlm_confirmed, "track_id": track_id, "evidence_refs": [evidence_id]})

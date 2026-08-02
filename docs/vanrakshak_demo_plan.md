@@ -621,6 +621,7 @@ export const useVanRakshakStore = create((set, get) => ({
 - **VLM integration:** representative-frame analysis works, but per-track crops and multi-frame temporal reasoning are not yet wired.
 - **Threat/FSM:** frontend currently demonstrates simplified threat/state behavior; the full backend rule-engine FSM is not implemented.
 - **Tracker evaluation:** YOLOv8n comparison is complete; RT-DETR comparison is pending because its 63 MB checkpoint download timed out in the current environment.
+- **Mission decision slice:** backend threat scoring, config-backed FSM transitions, and actuator ACK simulation are now implemented and covered by unit tests.
 
 ### Not yet implemented
 
@@ -630,6 +631,23 @@ export const useVanRakshakStore = create((set, get) => ({
 - Complete ActuatorSimulationService ACK lifecycle and `activeEffects` derivation.
 - Zustand orchestration and full C2 surfaces (map, HUD overlays, dispatch modal, replay timeline).
 - Required integration/UI gates and `GREENLIGHT_REPORT.md` sign-off.
+
+### Latest implementation notes
+
+- Default video path now uses YOLOv8n + ByteTrack, samples every second frame, and filters detections below 0.35 confidence.
+- BoT-SORT remains available through the benchmark/configuration path for moving-camera comparisons.
+- Backend mission tests now cover threat scoring, PATROL/INVESTIGATE/TRACK/VERIFY/ALERT/RETURN_HOME transitions, and the unavailable suppressant deployment path.
+
+### Demo video test results (YOLOv8n + ByteTrack, every 2nd frame, confidence >= 0.35)
+
+| Video | Frames | Sampled | Detections | Unique IDs | Classes observed | Runtime |
+| --- | ---: | ---: | ---: | ---: | --- | ---: |
+| `01_thermal_intruder_drone.mp4` | 313 | 157 | 0 | 0 | none | 11.58 s |
+| `02_intruder_vehicle_surveillance.mp4` | 647 | 324 | 157 | 27 | bicycle, boat, bus, car, cell phone, kite, person | 9.39 s |
+| `03_thermal_wildfire_smoke_recon.mp4` | 450 | 225 | 1 | 1 | donut | 9.75 s |
+| `04_wildlife_elephants_monitoring.mp4` | 450 | 225 | 735 | 11 | elephant, horse | 10.91 s |
+
+Interpretation: the stock COCO detector is usable for visible people/vehicles and elephants, but it is not a wildfire or thermal-intruder detector. Thermal/fire footage requires a domain-trained detector and should not be treated as mission-ready from these results. Per-track multi-frame VLM analysis is still pending; current VLM analysis uses one representative frame.
 
 ### Benchmark evidence
 

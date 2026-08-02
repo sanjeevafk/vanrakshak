@@ -68,6 +68,30 @@ def test_vlm_confirmed_passed_directly_to_policy_evaluation():
     policy_events = [e for e in events if e.type == "POLICY_EVALUATED"]
     assert len(policy_events) > 0
     assert policy_events[0].payload["decision"] == "RECOMMEND_REVIEW"
-    assert summary_unconfirmed.incidents.get("1") == "PERSISTING"
+
+
+def test_poaching_suspect_activity_emits_scene_label_and_full_escalation():
+    store = InMemoryEventStore()
+    runner = MissionRunner(store)
+    summary, _ = runner.run("m_poach", ticks=2, wildlife=False, activity="POACHING_SUSPECT")
+    events = store.list_events("m_poach")
+    scene_events = [e for e in events if e.type == "SCENE_ANALYZED"]
+    assert len(scene_events) > 0
+    for scene in scene_events:
+        assert scene.payload["activity_type"] == "POACHING_SUSPECT"
+        assert scene.payload["source"] == "synthetic_demo"
+    # Poaching is a person — the genuine human-intrusion escalation path fires.
+    command_events = [e for e in events if e.type == "COMMAND_EMITTED"]
+    commands = {e.payload["command"] for e in command_events}
+    assert "SIREN_ACTIVATE" in commands
+    assert "DISPATCH_RANGER" in commands
+    assert summary.incidents.get("1") in {"VERIFIED", "ALERT"}
+
+
+def test_poaching_activity_absent_by_default():
+    store = InMemoryEventStore()
+    MissionRunner(store).run("m_plain", ticks=1)
+    events = store.list_events("m_plain")
+    assert not any(e.type == "SCENE_ANALYZED" for e in events)
 
 

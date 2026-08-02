@@ -1,0 +1,1136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VanRakshak — The drone brain that knows when not to escalate</title>
+<meta name="description" content="VanRakshak — an indigenous AI-powered wildlife intelligence platform. Autonomous forest surveillance: real perception, deterministic decisions, closed-loop command semantics. MSME Idea Hackathon 6.0." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+Tamil:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   வனக் காவலன் · वनरक्षक · VANRAKSHAK — MSME presentation system
+   Theme: "Forest command center" — deep noir green, emerald, acid lime
+   ============================================================ */
+:root{
+  --paper:#040b08;
+  --paper-2:#071410;
+  --panel:#0a1a14;
+  --panel-2:#0d2119;
+  --panel-3:#10291f;
+  --line:rgba(196,242,123,.13);
+  --line-strong:rgba(196,242,123,.32);
+  --ink:#edf6ec;
+  --muted:#8ea89b;
+  --muted-2:#6c8578;
+  --acid:#c4f27b;
+  --emerald:#3ddc97;
+  --teal:#57c7b8;
+  --amber:#ffbd62;
+  --red:#ff836e;
+  --blue:#8ec9e8;
+  --font-display:"Space Grotesk","Noto Sans Tamil","Noto Sans Devanagari",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --max:1180px;
+  --radius:18px;
+  --ease:cubic-bezier(.22,.61,.21,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--font-body);
+  line-height:1.6;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+/* ---- ambient background ---- */
+body::before{
+  content:"";position:fixed;inset:0;z-index:-3;pointer-events:none;
+  background:
+    radial-gradient(900px 600px at 12% -6%, rgba(61,220,151,.10), transparent 60%),
+    radial-gradient(800px 600px at 92% 8%, rgba(196,242,123,.07), transparent 55%),
+    radial-gradient(900px 700px at 50% 110%, rgba(87,199,184,.07), transparent 60%),
+    var(--paper);
+}
+body::after{ /* contour grid */
+  content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;opacity:.5;
+  background-image:
+    linear-gradient(rgba(255,255,255,.028) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.028) 1px,transparent 1px);
+  background-size:56px 56px;
+  mask-image:radial-gradient(120% 90% at 50% 0%, #000 40%, transparent 90%);
+}
+.grain{position:fixed;inset:0;z-index:60;pointer-events:none;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E");
+}
+::selection{background:var(--acid);color:#07110d}
+a{color:inherit;text-decoration:none}
+img,svg,video{max-width:100%;display:block}
+button{font-family:inherit;cursor:pointer}
+.wrap{width:min(var(--max),calc(100% - 56px));margin:0 auto}
+.mono{font-family:var(--font-mono);letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:var(--muted)}
+.eyebrow{display:inline-flex;align-items:center;gap:10px;font-family:var(--font-mono);letter-spacing:.18em;text-transform:uppercase;font-size:11px;color:var(--acid)}
+.eyebrow::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--acid);box-shadow:0 0 14px var(--acid)}
+
+/* ---------- progress + nav ---------- */
+#progress{position:fixed;top:0;left:0;height:3px;width:0%;z-index:90;
+  background:linear-gradient(90deg,var(--emerald),var(--acid));box-shadow:0 0 14px rgba(196,242,123,.6)}
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:80;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px max(24px,calc((100vw - var(--max))/2));
+  backdrop-filter:blur(14px);
+  background:linear-gradient(180deg,rgba(4,11,8,.82),rgba(4,11,8,.35));
+  border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:12px;font-family:var(--font-display);font-weight:700;font-size:16px;letter-spacing:.04em;white-space:nowrap}
+.brand .mark{width:26px;height:26px;position:relative;border-radius:50%;border:1px solid var(--acid)}
+.brand .mark::before{content:"";position:absolute;inset:6px;border-radius:50%;background:var(--acid);box-shadow:0 0 12px var(--acid)}
+.brand .mark::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:1px dashed rgba(196,242,123,.5);animation:spin 14s linear infinite}
+.nav-links{display:flex;gap:26px;align-items:center}
+.nav-links a{font-size:12.5px;letter-spacing:.06em;color:var(--muted);transition:color .2s;white-space:nowrap}
+.nav-links a:hover{color:var(--acid)}
+.btn{
+  display:inline-flex;align-items:center;gap:9px;
+  font-family:var(--font-mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:500;
+  padding:12px 18px;border-radius:9px;border:1px solid var(--acid);
+  background:var(--acid);color:#0a160d;transition:all .25s var(--ease);white-space:nowrap;
+}
+.btn:hover{transform:translateY(-2px);box-shadow:0 12px 34px rgba(196,242,123,.25)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line-strong)}
+.btn.ghost:hover{border-color:var(--acid);color:var(--acid);box-shadow:none}
+.btn.small{padding:9px 13px;font-size:10.5px}
+
+/* ---------- slide chrome ---------- */
+#slideCount{position:fixed;right:20px;bottom:18px;z-index:85;font-family:var(--font-mono);font-size:11px;color:var(--muted-2);letter-spacing:.18em}
+#slideLabel{position:fixed;left:20px;bottom:18px;z-index:85;font-family:var(--font-mono);font-size:11px;color:var(--muted-2);letter-spacing:.18em;text-transform:uppercase}
+#hint{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:85;font-family:var(--font-mono);font-size:10px;color:var(--muted-2);letter-spacing:.1em;opacity:0;transition:opacity .4s}
+body.scrolled #hint{opacity:.9}
+
+/* ---------- sections ---------- */
+section{position:relative;padding:150px 0;scroll-margin-top:70px}
+section > .wrap{position:relative}
+.sec-head{margin-bottom:64px;max-width:820px}
+.sec-head h2{font-family:var(--font-display);font-size:clamp(36px,5.4vw,68px);line-height:1.04;letter-spacing:-.04em;margin:18px 0 20px;font-weight:700}
+.sec-head h2 em{font-style:normal;color:var(--acid)}
+.sec-head .lede{color:var(--muted);font-size:17px;max-width:640px}
+
+/* ---------- reveal ---------- */
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+.reveal.in{opacity:1;transform:none}
+.d1{transition-delay:.08s}.d2{transition-delay:.16s}.d3{transition-delay:.24s}.d4{transition-delay:.32s}.d5{transition-delay:.4s}
+
+/* ============================================================
+   HERO
+   ============================================================ */
+#hero{min-height:100vh;display:flex;align-items:center;padding:150px 0 90px}
+#hero .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:60px;align-items:center}
+#hero h1{font-family:var(--font-display);font-size:clamp(46px,7vw,92px);line-height:.98;letter-spacing:-.045em;margin:26px 0 26px;font-weight:700}
+#hero h1 .dim{color:var(--ink)}
+#hero h1 .lime{color:var(--acid);position:relative;white-space:nowrap}
+#hero h1 .lime::after{content:"";position:absolute;left:0;right:0;bottom:-4px;height:2px;background:linear-gradient(90deg,var(--acid),transparent)}
+.hero-sub{color:var(--muted);font-size:18px;max-width:560px;margin-bottom:38px}
+.hero-actions{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:40px}
+.hero-meta{display:flex;gap:26px;flex-wrap:wrap;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted-2)}
+.hero-meta b{color:var(--ink);font-weight:500}
+.scroll-cue{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--muted-2);font-family:var(--font-mono);font-size:10px;letter-spacing:.2em}
+.scroll-cue .chev{width:14px;height:14px;border-right:1.5px solid var(--muted-2);border-bottom:1.5px solid var(--muted-2);transform:rotate(45deg);animation:drop 1.8s ease-in-out infinite}
+
+/* radar scope */
+.scope{position:relative;aspect-ratio:1/1;max-width:480px;margin:0 auto}
+.scope .ring{position:absolute;border-radius:50%;border:1px solid var(--line-strong)}
+.scope .r1{inset:0;border-color:rgba(196,242,123,.22)}
+.scope .r2{inset:11%}
+.scope .r3{inset:22%;border-style:dashed}
+.scope .r4{inset:33%;opacity:.5}
+.scope .axis{position:absolute;background:rgba(196,242,123,.12)}
+.scope .axis.h{left:0;right:0;top:50%;height:1px}
+.scope .axis.v{top:0;bottom:0;left:50%;width:1px}
+.scope .sweep{position:absolute;inset:0;border-radius:50%;
+  background:conic-gradient(from 0deg, rgba(196,242,123,.38), rgba(196,242,123,.05) 55deg, transparent 70deg);
+  animation:sweep 5.5s linear infinite;
+  -webkit-mask:radial-gradient(circle, transparent 33%, #000 34%);
+          mask:radial-gradient(circle, transparent 33%, #000 34%);
+}
+.scope .core{position:absolute;inset:33%;display:grid;place-items:center}
+.scope .core::before{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,rgba(61,220,151,.2),transparent 70%);animation:pulse 3.2s ease-in-out infinite}
+.scope .core svg{width:58%;height:58%;filter:drop-shadow(0 0 18px rgba(196,242,123,.45))}
+.rotor{transform-origin:center;animation:spin 1.1s linear infinite}
+.chip{position:absolute;font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;color:var(--acid);
+  border:1px solid var(--line-strong);background:rgba(10,26,20,.85);padding:7px 11px;border-radius:7px;
+  animation:float 6s ease-in-out infinite;backdrop-filter:blur(6px)}
+.chip.c1{top:2%;left:14%}.chip.c2{top:14%;right:0;animation-delay:-1.4s}
+.chip.c3{bottom:22%;right:2%;animation-delay:-2.6s}.chip.c4{bottom:0;left:30%;animation-delay:-3.8s}
+.chip.c5{top:44%;left:-4%;animation-delay:-5s}
+.scope .stamp{position:absolute;left:-14px;bottom:16%;background:var(--amber);color:#241607;padding:12px 14px;font-family:var(--font-mono);font-size:10px;line-height:1.5;transform:rotate(-4deg);box-shadow:6px 6px 0 #07110d;letter-spacing:.1em}
+.scope .stamp b{display:block;font-size:13px;color:#1a0f02}
+
+/* marquee */
+.marquee{position:relative;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:16px 0;overflow:hidden;margin-top:70px}
+.marquee .track{display:flex;gap:54px;width:max-content;animation:marquee 30s linear infinite}
+.marquee span{font-family:var(--font-mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.marquee span b{color:var(--acid);font-weight:500}
+
+/* ============================================================
+   PROBLEM
+   ============================================================ */
+.problem-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.problem-card{border:1px solid var(--line);background:linear-gradient(160deg,var(--panel),var(--paper-2));border-radius:var(--radius);padding:30px 26px;transition:all .3s var(--ease);position:relative;overflow:hidden}
+.problem-card::after{content:"";position:absolute;inset:0;background:radial-gradient(320px 160px at 50% -20%,rgba(196,242,123,.08),transparent);opacity:0;transition:opacity .3s}
+.problem-card:hover{transform:translateY(-5px);border-color:var(--line-strong)}
+.problem-card:hover::after{opacity:1}
+.problem-card .num{font-family:var(--font-mono);font-size:11px;color:var(--amber);letter-spacing:.14em}
+.problem-card h3{font-family:var(--font-display);font-size:21px;margin:16px 0 10px}
+.problem-card p{color:var(--muted);font-size:14px}
+.pain-stat{margin-top:56px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.pain-stat div{border-left:2px solid var(--line-strong);padding-left:20px}
+.pain-stat b{display:block;font-family:var(--font-display);font-size:clamp(26px,3vw,40px);color:var(--acid)}
+.pain-stat span{font-size:13px;color:var(--muted)}
+
+/* ============================================================
+   VISION
+   ============================================================ */
+#vision .big{font-family:var(--font-display);font-size:clamp(30px,4.4vw,54px);line-height:1.1;letter-spacing:-.03em;max-width:980px;margin-bottom:26px}
+#vision .big .lime{color:var(--acid)}
+.vision-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:64px}
+.v-pillar{border:1px solid var(--line);border-radius:var(--radius);padding:26px 20px;background:linear-gradient(165deg,var(--panel-2),var(--paper-2));transition:all .3s var(--ease)}
+.v-pillar:hover{transform:translateY(-4px);border-color:var(--acid)}
+.v-pillar .step{font-family:var(--font-mono);font-size:11px;color:var(--emerald)}
+.v-pillar h4{font-family:var(--font-display);font-size:16px;margin:12px 0 8px}
+.v-pillar p{font-size:12.5px;color:var(--muted)}
+.v-pillar .ico{width:38px;height:38px;display:grid;place-items:center;border:1px solid var(--line-strong);border-radius:10px;margin-bottom:14px}
+.v-pillar .ico svg{width:20px;height:20px;stroke:var(--acid);fill:none;stroke-width:1.6}
+.vision-strip{display:flex;gap:12px;flex-wrap:wrap;margin-top:40px}
+.tag{font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--line);color:var(--muted);padding:10px 14px;border-radius:8px}
+.tag b{color:var(--ink);font-weight:500}
+.tag.hot{border-color:rgba(255,189,98,.4);color:var(--amber)}
+.tag.hot b{color:var(--amber)}
+
+/* ============================================================
+   METRICS
+   ============================================================ */
+#metrics{background:linear-gradient(180deg,transparent,rgba(10,26,20,.55) 30%,rgba(10,26,20,.55) 70%,transparent);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.metric-head{display:flex;justify-content:space-between;align-items:flex-end;gap:30px;flex-wrap:wrap;margin-bottom:52px}
+.metric-head h2{font-family:var(--font-display);font-size:clamp(32px,4.6vw,56px);letter-spacing:-.04em}
+.metric-head p{color:var(--muted);max-width:480px;font-size:15px}
+.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.metric{position:relative;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);padding:26px 20px;overflow:hidden}
+.metric::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--emerald),transparent)}
+.metric b{display:block;font-family:var(--font-display);font-size:clamp(30px,3.4vw,46px);line-height:1;letter-spacing:-.03em;color:var(--acid)}
+.metric b .sup{font-size:.45em;color:var(--muted-2);font-weight:400}
+.metric span{display:block;margin-top:12px;font-size:12px;color:var(--muted);line-height:1.45}
+.metric.danger::before{background:linear-gradient(90deg,var(--red),transparent)}
+.metric.danger b{color:var(--red)}
+.metric.amber::before{background:linear-gradient(90deg,var(--amber),transparent)}
+.metric.amber b{color:var(--amber)}
+.metric .tag{position:absolute;top:14px;right:14px;font-family:var(--font-mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted-2);border:1px solid var(--line);border-radius:4px;padding:3px 6px}
+
+/* ============================================================
+   ARCHITECTURE
+   ============================================================ */
+.pipeline{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;position:relative}
+.stage{position:relative;border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(170deg,var(--panel-2),var(--paper-2));padding:24px 18px;min-height:215px;transition:all .3s var(--ease)}
+.stage:hover{border-color:var(--acid);transform:translateY(-4px)}
+.stage .n{font-family:var(--font-mono);font-size:10.5px;color:var(--emerald);letter-spacing:.12em}
+.stage h4{font-family:var(--font-display);font-size:19px;margin:14px 0 8px}
+.stage p{font-size:12.5px;color:var(--muted)}
+.stage .flowtag{display:inline-block;margin-top:14px;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.08em;color:var(--acid);border:1px solid var(--line);padding:4px 7px;border-radius:5px}
+.stage .pulse{position:absolute;top:16px;right:16px;width:8px;height:8px;border-radius:50%;background:var(--acid);box-shadow:0 0 0 0 rgba(196,242,123,.5);animation:ring 2.4s infinite}
+.stage:nth-child(2) .pulse{background:var(--emerald);animation-delay:.3s}
+.stage:nth-child(3) .pulse{background:var(--teal);animation-delay:.6s}
+.stage:nth-child(4) .pulse{background:var(--amber);animation-delay:.9s}
+.stage:nth-child(5) .pulse{background:var(--red);animation-delay:1.2s}
+.arch-flow{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;margin-top:18px}
+.arch-card{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);padding:28px}
+.arch-card h3{font-family:var(--font-display);font-size:21px;margin-bottom:10px}
+.arch-card p{color:var(--muted);font-size:14px}
+.dual{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-radius:12px;overflow:hidden;margin-top:20px}
+.dual > div{background:var(--panel);padding:20px}
+.dual .label{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;color:var(--muted-2);text-transform:uppercase}
+.dual h4{font-family:var(--font-display);font-size:16px;margin:8px 0}
+.dual ul{list-style:none;margin-top:8px}
+.dual li{font-size:12.5px;color:var(--muted);padding:4px 0 4px 18px;position:relative}
+.dual li::before{content:"▸";position:absolute;left:0;color:var(--acid)}
+.events-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}
+.evt{font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;border:1px solid var(--line);background:var(--paper-2);padding:7px 10px;border-radius:6px;color:var(--muted)}
+.evt b{color:var(--amber);font-weight:400}
+
+/* ============================================================
+   INNOVATIONS
+   ============================================================ */
+.inno-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.inno{border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(165deg,var(--panel),var(--paper-2));padding:30px 26px;transition:all .35s var(--ease);position:relative;overflow:hidden}
+.inno::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--emerald),var(--acid));opacity:0;transition:opacity .3s}
+.inno:hover{transform:translateY(-5px);border-color:var(--line-strong)}
+.inno:hover::before{opacity:1}
+.inno .ico{width:42px;height:42px;border:1px solid var(--line-strong);border-radius:11px;display:grid;place-items:center;margin-bottom:18px;background:var(--panel-3)}
+.inno .ico svg{width:21px;height:21px;stroke:var(--acid);fill:none;stroke-width:1.6}
+.inno h4{font-family:var(--font-display);font-size:19px;margin-bottom:9px}
+.inno p{font-size:13.5px;color:var(--muted)}
+.inno .proof{margin-top:14px;font-family:var(--font-mono);font-size:10.5px;color:var(--amber);letter-spacing:.05em}
+.formula-card{margin-top:20px;border:1px solid var(--line-strong);border-radius:var(--radius);padding:30px;background:linear-gradient(140deg,rgba(10,26,20,.9),rgba(7,20,16,.9));display:flex;align-items:center;justify-content:space-between;gap:30px;flex-wrap:wrap}
+.formula-card h3{font-family:var(--font-display);font-size:clamp(20px,2.6vw,30px);max-width:520px}
+.formula-card .formula{font-family:var(--font-mono);font-size:clamp(13px,1.7vw,19px);color:var(--acid);background:var(--paper);border:1px solid var(--line);padding:18px 22px;border-radius:12px;letter-spacing:.02em}
+.formula-card .formula b{color:var(--amber);font-weight:500}
+
+/* ============================================================
+   FSM
+   ============================================================ */
+#fsm{background:linear-gradient(180deg,transparent,rgba(10,26,20,.5) 40%,rgba(10,26,20,.5) 60%,transparent)}
+.fsm-wrap{display:grid;grid-template-columns:1.15fr .85fr;gap:34px;align-items:start}
+.fsm-flow{display:flex;flex-direction:column;gap:0}
+.fsm-node{display:flex;align-items:center;gap:18px;border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:16px 20px;cursor:pointer;transition:all .3s var(--ease);position:relative}
+.fsm-node:hover{border-color:var(--acid);transform:translateX(4px)}
+.fsm-node.active{border-color:var(--acid);background:var(--panel-3);box-shadow:0 0 0 1px var(--acid),0 10px 34px rgba(196,242,123,.12)}
+.fsm-node .dot{width:12px;height:12px;border-radius:50%;background:var(--muted-2);flex:none;transition:all .3s}
+.fsm-node.active .dot{background:var(--acid);box-shadow:0 0 14px var(--acid)}
+.fsm-node.in-path .dot{background:var(--emerald);box-shadow:0 0 14px var(--emerald)}
+.fsm-node .code{font-family:var(--font-mono);font-size:12.5px;letter-spacing:.12em;color:var(--ink);font-weight:500}
+.fsm-node .desc{font-size:12px;color:var(--muted)}
+.fsm-arrow{margin:0 0 0 6px;height:26px;display:flex;align-items:center;color:var(--muted-2);font-family:var(--font-mono);font-size:10px;letter-spacing:.1em}
+.fsm-arrow::before{content:"↓";font-size:13px;color:var(--line-strong)}
+.fsm-arrow.active::before{color:var(--acid);text-shadow:0 0 10px var(--acid)}
+.fsm-detail{border:1px solid var(--line-strong);border-radius:var(--radius);background:var(--panel);padding:30px;position:sticky;top:110px;min-height:400px}
+.fsm-detail .state-name{font-family:var(--font-display);font-size:clamp(30px,3.4vw,44px);letter-spacing:-.03em;margin:10px 0 18px}
+.fsm-detail dl{display:grid;grid-template-columns:auto 1fr;gap:12px 20px}
+.fsm-detail dt{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;color:var(--muted-2);text-transform:uppercase;padding-top:3px}
+.fsm-detail dd{font-size:14px;color:var(--muted)}
+.fsm-detail .runbtn{margin-top:26px;width:100%}
+.fsm-detail .path-status{margin-top:16px;font-family:var(--font-mono);font-size:11px;color:var(--emerald);letter-spacing:.08em;min-height:20px}
+
+/* ============================================================
+   CALCULATOR
+   ============================================================ */
+.calc-wrap{display:grid;grid-template-columns:.95fr 1.05fr;gap:34px;align-items:stretch}
+.calc-panel{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);padding:32px}
+.calc-panel h3{font-family:var(--font-display);font-size:20px;margin-bottom:26px}
+.slider-row{margin-bottom:22px}
+.slider-row .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.slider-row label{font-size:13px;color:var(--muted)}
+.slider-row .val{font-family:var(--font-mono);font-size:14px;color:var(--acid)}
+.slider-row .weight{font-family:var(--font-mono);font-size:10px;color:var(--muted-2);margin-left:8px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:4px;background:linear-gradient(90deg,var(--emerald),var(--acid));outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--paper);border:2px solid var(--acid);box-shadow:0 0 12px rgba(196,242,123,.5);cursor:pointer;transition:transform .15s}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--paper);border:2px solid var(--acid);cursor:pointer}
+.score-panel{border:1px solid var(--line-strong);border-radius:var(--radius);background:linear-gradient(160deg,var(--panel-2),var(--paper-2));padding:32px;display:flex;flex-direction:column;justify-content:center}
+.score-big{font-family:var(--font-display);font-size:clamp(64px,9vw,120px);line-height:1;letter-spacing:-.05em;color:var(--acid)}
+.score-big .unit{font-size:.3em;color:var(--muted-2)}
+.score-track{position:relative;height:14px;border-radius:8px;background:var(--paper);border:1px solid var(--line);margin:30px 0 12px;overflow:visible}
+.score-fill{position:absolute;top:0;left:0;bottom:0;border-radius:8px;background:linear-gradient(90deg,var(--emerald),var(--acid));width:0%;transition:width .35s var(--ease)}
+.score-mark{position:absolute;top:-7px;bottom:-7px;width:2px;background:var(--amber);z-index:2}
+.score-mark span{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);font-family:var(--font-mono);font-size:9.5px;color:var(--amber);letter-spacing:.08em;white-space:nowrap}
+.score-mark.m85{background:var(--red)}
+.score-mark.m85 span{color:var(--red)}
+.score-state{font-family:var(--font-mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--emerald);min-height:22px}
+.score-bars{margin-top:26px;display:flex;flex-direction:column;gap:10px}
+.sbar{display:flex;align-items:center;gap:12px}
+.sbar .nm{width:96px;font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;color:var(--muted-2);text-transform:uppercase;flex:none}
+.sbar .bar{flex:1;height:7px;border-radius:4px;background:var(--paper);overflow:hidden}
+.sbar .fill{height:100%;border-radius:4px;transition:width .3s var(--ease)}
+.sbar .pt{width:44px;text-align:right;font-family:var(--font-mono);font-size:11px;color:var(--ink)}
+
+
+/* ============================================================
+   ROADMAP
+   ============================================================ */
+.timeline{position:relative;margin-top:70px}
+.timeline::before{content:"";position:absolute;left:0;right:0;top:9px;height:2px;background:linear-gradient(90deg,var(--emerald),var(--acid),var(--amber),var(--blue),var(--teal));opacity:.5}
+.tl-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
+.tl{position:relative;padding-top:34px}
+.tl .dot{position:absolute;top:0;left:0;width:20px;height:20px;border-radius:50%;border:2px solid var(--acid);background:var(--paper);box-shadow:0 0 0 6px var(--panel)}
+.tl:nth-child(2) .dot{border-color:var(--emerald)}.tl:nth-child(3) .dot{border-color:var(--teal)}
+.tl:nth-child(4) .dot{border-color:var(--amber)}.tl:nth-child(5) .dot{border-color:var(--blue)}.tl:nth-child(6) .dot{border-color:var(--teal)}
+.tl .when{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.12em;color:var(--muted-2);text-transform:uppercase}
+.tl h4{font-family:var(--font-display);font-size:17px;margin:8px 0 8px}
+.tl p{font-size:12.5px;color:var(--muted)}
+.tl .now{display:inline-block;margin-top:10px;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.12em;color:var(--emerald);border:1px solid rgba(61,220,151,.4);padding:4px 8px;border-radius:6px;text-transform:uppercase}
+.phase-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:56px}
+.phase{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);padding:26px}
+.phase .ph{font-family:var(--font-mono);font-size:11px;color:var(--amber);letter-spacing:.14em}
+.phase h4{font-family:var(--font-display);font-size:18px;margin:10px 0 8px}
+.phase ul{list-style:none}
+.phase li{font-size:13px;color:var(--muted);padding:5px 0 5px 18px;position:relative}
+.phase li::before{content:"▸";position:absolute;left:0;color:var(--acid)}
+
+/* ============================================================
+   COMMERCIAL
+   ============================================================ */
+#commercial{background:linear-gradient(180deg,transparent,rgba(10,26,20,.5) 40%,rgba(10,26,20,.5) 60%,transparent)}
+.market-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.market{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);padding:28px 24px;transition:all .3s var(--ease)}
+.market:hover{transform:translateY(-4px);border-color:var(--line-strong)}
+.market .mnum{font-family:var(--font-mono);font-size:11px;color:var(--acid);letter-spacing:.14em}
+.market h4{font-family:var(--font-display);font-size:18px;margin:12px 0 8px}
+.market p{font-size:13px;color:var(--muted)}
+.biz-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:56px}
+.biz{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);padding:30px}
+.biz h4{font-family:var(--font-display);font-size:19px;margin-bottom:6px}
+.biz .sub{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted-2)}
+.biz ul{list-style:none;margin-top:16px}
+.biz li{display:flex;align-items:center;gap:11px;font-size:14px;color:var(--muted);padding:7px 0}
+.biz li svg{width:16px;height:16px;stroke:var(--acid);flex:none}
+.biz.primary li svg{stroke:var(--acid)}
+.biz.recurring li svg{stroke:var(--teal)}
+.ask{margin-top:56px;display:grid;grid-template-columns:.9fr 1.1fr;gap:34px;align-items:center}
+.ask h3{font-family:var(--font-display);font-size:clamp(30px,4vw,48px);letter-spacing:-.04em;line-height:1.05}
+.ask h3 .lime{color:var(--acid)}
+.ask .ask-sub{color:var(--muted);margin-top:16px;font-size:15px;max-width:460px}
+.ask .rupee{font-family:var(--font-display);font-size:clamp(44px,6vw,72px);color:var(--amber);letter-spacing:-.03em;line-height:1}
+.ask .rupee small{font-size:.35em;color:var(--muted-2)}
+.fund{display:flex;flex-direction:column;gap:14px}
+.fund-row{display:grid;grid-template-columns:minmax(170px,1fr) 1.4fr 46px;gap:14px;align-items:center}
+.fund-row .fname{font-size:13px;color:var(--muted)}
+.fund-row .fbar{height:10px;border-radius:5px;background:var(--paper);border:1px solid var(--line);overflow:hidden}
+.fund-row .ffill{height:100%;border-radius:5px;background:linear-gradient(90deg,var(--emerald),var(--acid));width:0%;transition:width 1s var(--ease)}
+.fund-row .fval{font-family:var(--font-mono);font-size:12px;color:var(--acid);text-align:right}
+.comp{margin-top:56px;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.comp table{width:100%;border-collapse:collapse;font-size:13px}
+.comp th{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-2);padding:16px 14px;text-align:left;border-bottom:1px solid var(--line);background:var(--panel)}
+.comp th.ours{color:var(--acid)}
+.comp td{padding:14px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--muted)}
+.comp td.ours{color:var(--ink);font-weight:500;background:rgba(196,242,123,.04)}
+.comp tr:last-child td{border-bottom:none}
+.comp .chk{color:var(--emerald)}.comp .x{color:var(--muted-2)}.comp .part{color:var(--amber)}
+
+/* ============================================================
+   CLOSING + FOOTER
+   ============================================================ */
+#closing{min-height:92vh;display:flex;align-items:center;text-align:center;padding:120px 0}
+#closing .big{font-family:var(--font-display);font-size:clamp(40px,7vw,96px);letter-spacing:-.05em;line-height:1.02;margin:26px 0 22px}
+#closing .big .lime{color:var(--acid)}
+#closing .lede{color:var(--muted);font-size:18px;max-width:620px;margin:0 auto 40px}
+#closing .actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.team{margin-top:60px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.team .member{border:1px solid var(--line);border-radius:14px;padding:16px 22px;background:var(--panel);min-width:170px}
+.team .member b{font-family:var(--font-display);font-size:15px;display:block}
+.team .member span{font-size:12px;color:var(--muted)}
+footer{border-top:1px solid var(--line);padding:30px 0 46px;color:var(--muted-2);font-size:12px}
+footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:center}
+footer .mono{font-size:10px}
+
+/* ---------- notes drawer ---------- */
+#notesBtn{position:fixed;right:20px;top:78px;z-index:85;width:38px;height:38px;border-radius:10px;border:1px solid var(--line-strong);background:rgba(10,26,20,.85);color:var(--acid);font-size:15px;display:grid;place-items:center;backdrop-filter:blur(8px);transition:all .25s}
+#notesBtn:hover{border-color:var(--acid);transform:translateY(-2px)}
+#notesBtn.active{background:var(--acid);color:#0a160d}
+#notesDrawer{position:fixed;top:0;right:0;bottom:0;width:min(430px,92vw);z-index:95;background:var(--paper-2);border-left:1px solid var(--line-strong);transform:translateX(105%);transition:transform .45s var(--ease);overflow-y:auto;padding:26px;box-shadow:-30px 0 60px rgba(0,0,0,.5)}
+#notesDrawer.open{transform:none}
+#notesDrawer h4{font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;color:var(--acid);text-transform:uppercase;margin-bottom:20px}
+#notesDrawer h5{font-family:var(--font-display);font-size:16px;margin:18px 0 6px}
+#notesDrawer p{font-size:13px;color:var(--muted);margin-bottom:14px}
+#notesClose{position:absolute;top:16px;right:16px;background:none;border:none;color:var(--muted);font-size:18px}
+
+/* ---------- animations ---------- */
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes sweep{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:.5;transform:scale(.92)}50%{opacity:1;transform:scale(1.06)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+@keyframes drop{0%,100%{opacity:.2;transform:rotate(45deg) translate(0,0)}50%{opacity:1;transform:rotate(45deg) translate(5px,5px)}}
+@keyframes marquee{to{transform:translateX(-50%)}}
+@keyframes ring{0%{box-shadow:0 0 0 0 rgba(196,242,123,.45)}70%{box-shadow:0 0 0 9px rgba(196,242,123,0)}100%{box-shadow:0 0 0 0 rgba(196,242,123,0)}}
+@keyframes sirenFlash{0%,100%{opacity:.14}50%{opacity:1}}
+@keyframes pulseAck{0%,100%{box-shadow:0 0 0 0 rgba(61,220,151,0)}50%{box-shadow:0 0 0 6px rgba(61,220,151,.28)}}
+
+@media (max-height:800px){
+  .fsm-detail{max-height:64vh;overflow-y:auto}
+  #hero{min-height:auto}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001s !important;animation-iteration-count:1 !important;transition-duration:.001s !important}
+  html{scroll-behavior:auto}
+}
+
+/* ---------- responsive ---------- */
+@media (max-width:1100px){
+  #hero .grid{grid-template-columns:1fr;gap:50px}
+  .scope{max-width:400px}
+  .metric-grid{grid-template-columns:repeat(2,1fr)}
+  .pipeline{grid-template-columns:repeat(3,1fr)}
+  .tl-grid{grid-template-columns:repeat(3,1fr);gap:26px 14px}
+  .timeline::before{display:none}
+  .vision-grid{grid-template-columns:repeat(3,1fr)}
+  .inno-grid{grid-template-columns:repeat(2,1fr)}
+  .market-grid{grid-template-columns:repeat(2,1fr)}
+  .fsm-wrap,.calc-wrap{grid-template-columns:1fr}
+  .fsm-detail{position:static}
+  .arch-flow,.ask{grid-template-columns:1fr}
+}
+@media (max-width:760px){
+  .nav-links{display:none}
+  section{padding:110px 0}
+  .problem-grid,.metric-grid,.pipeline,.vision-grid,.inno-grid,.market-grid,.phase-grid,.biz-grid,.pain-stat{grid-template-columns:1fr}
+  .tl-grid{grid-template-columns:1fr 1fr}
+  .dual{grid-template-columns:1fr}
+  .formula-card{flex-direction:column;align-items:flex-start}
+  .score-big{font-size:72px}
+  .fund-row{grid-template-columns:1fr}
+  .comp{overflow-x:auto}
+  .comp table{min-width:680px}
+  #slideCount,#slideLabel{display:none}
+}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div id="progress"></div>
+
+<nav>
+  <a href="#hero" class="brand"><span class="mark"></span>வனக் காவலன் · वनरक्षक · VANRAKSHAK</a>
+  <div class="nav-links">
+    <a href="#problem">Problem</a>
+    <a href="#vision">Vision</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#innovations">Innovations</a>
+    <a href="#roadmap">Roadmap</a>
+    <a href="#commercial">Commercial</a>
+    <a href="http://127.0.0.1:5173" target="_blank" rel="noopener" class="btn small">Live demo ↗</a>
+  </div>
+</nav>
+
+<button id="notesBtn" aria-label="Toggle speaker notes" aria-expanded="false" aria-controls="notesDrawer" title="Speaker notes (S)">📋</button>
+<aside id="notesDrawer" aria-label="Speaker notes">
+  <button id="notesClose" aria-label="Close notes">✕</button>
+  <h4>Speaker notes · 10:00 deck + 5:00 Q&amp;A</h4>
+  <div id="notesBody"></div>
+</aside>
+
+<div id="slideLabel">VanRakshak</div>
+<div id="slideCount">— / 11</div>
+<div id="hint">← → slides · S notes · ↓ scroll</div>
+
+<main>
+
+<!-- ================= HERO ================= -->
+<section id="hero">
+  <div class="wrap">
+    <div class="grid">
+      <div>
+        <span class="eyebrow reveal">MSME Idea Hackathon 6.0 · Other Frontier Technologies</span>
+        <h1 class="reveal d1">The drone brain that knows <span class="lime">when not to escalate.</span></h1>
+        <p class="hero-sub reveal d2">VanRakshak is an indigenous AI-powered wildlife intelligence platform — real perception, deterministic decisions, closed-loop command semantics. Built on real footage, running live.</p>
+        <div class="hero-actions reveal d3">
+          <a href="#problem" class="btn">Explore the system ↓</a>
+          <a href="http://127.0.0.1:5173" target="_blank" rel="noopener" class="btn ghost">Launch C2 console</a>
+        </div>
+        <div class="hero-meta reveal d4">
+          <span>Perception <b>YOLOv8n + ByteTrack</b></span>
+          <span>Reasoning <b>Deterministic FSM</b></span>
+          <span>Evidence <b>Event-linked</b></span>
+          <span>IP <b>Patent 202341070952A</b></span>
+        </div>
+      </div>
+      <div class="reveal d2">
+        <div class="scope">
+          <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="ring r4"></div>
+          <div class="axis h"></div><div class="axis v"></div>
+          <div class="sweep"></div>
+          <div class="core">
+            <svg viewBox="0 0 120 120" fill="none" stroke="#c4f27b" stroke-width="2" stroke-linecap="round">
+              <!-- drone body -->
+              <path d="M42 60h36M60 42v36"/>
+              <rect x="54" y="54" width="12" height="12" rx="2"/>
+              <!-- arms -->
+              <path d="M60 60L32 32M60 60L88 32M60 60L32 88M60 60L88 88"/>
+              <!-- rotors -->
+              <g class="rotor" transform="translate(32,32)"><path d="M22 0h8M-30 0h8"/><circle r="2" fill="#c4f27b"/></g>
+              <g class="rotor" transform="translate(88,32)"><path d="M-30 0h8M22 0h8"/><circle r="2" fill="#c4f27b"/></g>
+              <g class="rotor" transform="translate(32,88)"><path d="M22 0h8M-30 0h8"/><circle r="2" fill="#c4f27b"/></g>
+              <g class="rotor" transform="translate(88,88)"><path d="M-30 0h8M22 0h8"/><circle r="2" fill="#c4f27b"/></g>
+              <!-- camera -->
+              <circle cx="60" cy="72" r="4" fill="rgba(196,242,123,.35)"/>
+            </svg>
+          </div>
+          <span class="chip c1">YOLO · DETECT</span>
+          <span class="chip c2">BYTETRACK · ID</span>
+          <span class="chip c3">VLM · REASON</span>
+          <span class="chip c4">FSM · DECIDE</span>
+          <span class="chip c5">ACK · ACT</span>
+          <div class="stamp"><b>GREENLIT</b>SOFTWARE DEMO · REAL FOOTAGE</div>
+        </div>
+      </div>
+    </div>
+    <div class="marquee">
+      <div class="track">
+        <span>Anti-poaching <b>·</b></span><span>Illegal logging detection <b>·</b></span><span>Early fire response <b>·</b></span><span>Human-wildlife conflict <b>·</b></span><span>Wildlife monitoring <b>·</b></span><span>Swarm ready <b>·</b></span><span>Edge AI onboard <b>·</b></span><span>Explained decisions <b>·</b></span>
+        <span>Anti-poaching <b>·</b></span><span>Illegal logging detection <b>·</b></span><span>Early fire response <b>·</b></span><span>Human-wildlife conflict <b>·</b></span><span>Wildlife monitoring <b>·</b></span><span>Swarm ready <b>·</b></span><span>Edge AI onboard <b>·</b></span><span>Explained decisions <b>·</b></span>
+      </div>
+    </div>
+  </div>
+  <div class="scroll-cue">SCROLL<div class="chev"></div></div>
+</section>
+
+<!-- ================= PROBLEM ================= -->
+<section id="problem">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">01 · The problem</span>
+      <h2>Forests are vast.<br>Surveillance <em>isn't.</em></h2>
+      <p class="lede">India's forests span vast, often inaccessible terrain. Manual patrols, static CCTV, and occasional drone flights leave critical gaps — poaching, illegal logging, encroachment, and early-stage fires go undetected until it's too late.</p>
+    </div>
+    <div class="problem-grid">
+      <div class="problem-card reveal"><span class="num">01</span><h3>Limited coverage</h3><p>Vast, remote forest terrain is impossible to patrol continuously on foot.</p></div>
+      <div class="problem-card reveal d1"><span class="num">02</span><h3>Personnel shortage</h3><p>Forest departments are chronically understaffed for the area they guard.</p></div>
+      <div class="problem-card reveal d2"><span class="num">03</span><h3>Delayed detection</h3><p>Incidents are discovered hours or days after they occur.</p></div>
+      <div class="problem-card reveal"><span class="num">04</span><h3>Poor night visibility</h3><p>Most poaching and logging happens after dark — unseen by daytime patrols.</p></div>
+      <div class="problem-card reveal d1"><span class="num">05</span><h3>No intelligent analysis</h3><p>Raw footage with no automated threat detection or prioritization.</p></div>
+      <div class="problem-card reveal d2"><span class="num">06</span><h3>High patrol risk</h3><p>Ground teams face direct physical danger confronting armed poachers.</p></div>
+    </div>
+    <div class="pain-stat reveal">
+      <div><b>&lt;3 s</b><span>target alert latency — vs. hours of manual review today</span></div>
+      <div><b>&gt;15 km²</b><span>coverage per sortie, autonomously, around the clock</span></div>
+      <div><b>&gt;60%</b><span>target reduction in patrol cost through autonomous coverage</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= VISION ================= -->
+<section id="vision">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">02 · The vision</span>
+      <h2>Building India's <em>indigenous</em> wildlife intelligence platform.</h2>
+    </div>
+    <p class="big reveal d1">An <span class="lime">autonomous forest response agent</span> that patrols, understands, assesses, and acts — then coordinates with the humans who protect the forest.</p>
+    <div class="vision-grid">
+      <div class="v-pillar reveal"><div class="ico"><svg viewBox="0 0 24 24"><path d="M3 12c0-1.7 1.3-3 3-3h12a3 3 0 010 6H6a3 3 0 01-3-3z"/><circle cx="6" cy="12" r="1.4" fill="#c4f27b" stroke="none"/></svg></div><span class="step">01</span><h4>Continuously patrols</h4><p>Predefined forest routes flown autonomously, on schedule, without fatigue.</p></div>
+      <div class="v-pillar reveal d1"><div class="ico"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></div><span class="step">02</span><h4>Understands the environment</h4><p>Onboard AI fuses RGB, thermal, LiDAR and audio into one world model.</p></div>
+      <div class="v-pillar reveal d2"><div class="ico"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.6L19.5 10l-5.7 1.4L12 17l-1.8-5.6L4.5 10l5.7-1.4z"/></svg></div><span class="step">03</span><h4>Assesses threats in real time</h4><p>Multi-signal threat scores with explainable, evidence-linked contributions.</p></div>
+      <div class="v-pillar reveal d3"><div class="ico"><svg viewBox="0 0 24 24"><path d="M12 21V9M12 9l-4 4M12 9l4 4"/><path d="M5 4h14"/></svg></div><span class="step">04</span><h4>Takes safe autonomous actions</h4><p>Deterministic state machines — never an LLM touching a motor.</p></div>
+      <div class="v-pillar reveal d4"><div class="ico"><svg viewBox="0 0 24 24"><path d="M4 20l4-9 3 5 3-8 6 12z"/><circle cx="18" cy="5" r="2.2"/></svg></div><span class="step">05</span><h4>Coordinates with rangers</h4><p>GPS-tagged alerts with image evidence reach the Command Dashboard.</p></div>
+    </div>
+    <div class="vision-strip reveal">
+      <span class="tag">Prototype compute <b>Jetson Orin Nano</b></span>
+      <span class="tag">Sensors <b>RGB · Thermal · LiDAR · GPS · IMU</b></span>
+      <span class="tag">Detection <b>&gt;95% target</b></span>
+      <span class="tag hot">IP <b>Patent 202341070952 A</b></span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= METRICS ================= -->
+<section id="metrics">
+  <div class="wrap">
+    <div class="metric-head reveal">
+      <h2>Proof, not slides.</h2>
+      <p>Three figures measured on the project's real clips — one derived from the dual-tier design. Not slideware estimates.</p>
+    </div>
+    <div class="metric-grid">
+      <div class="metric reveal"><b data-count="735">0</b><span>real detections on the wildlife elephant clip — one live run</span></div>
+      <div class="metric danger reveal d1"><b data-count="0">0</b><span>human-intruder sirens fired for wildlife</span></div>
+      <div class="metric reveal d2"><b data-count="5607">0</b><span>ordered mission events replayed deterministically</span></div>
+      <div class="metric amber reveal d3"><span class="tag">DERIVED</span><b data-count="98" data-suffix="%">0</b><span>telematics bandwidth reduction — events, not video streams</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ARCHITECTURE ================= -->
+<section id="architecture">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">03 · Technical architecture</span>
+      <h2>From pixels to <em>policy.</em></h2>
+      <p class="lede">A layered autonomy stack built around immutable, evidence-linked events. Every view is a projection; every decision carries proof.</p>
+    </div>
+    <div class="pipeline">
+      <div class="stage reveal"><span class="pulse"></span><span class="n">01 / PERCEPTION</span><h4>Perceive</h4><p>YOLOv8n + ByteTrack run on every sampled frame — real bounding boxes with persistent IDs.</p><span class="flowtag">DETECTION_OBSERVED</span></div>
+      <div class="stage reveal d1"><span class="pulse"></span><span class="n">02 / EVIDENCE</span><h4>Prove</h4><p>Quality-aware crops become bounded, content-addressed artifacts. Big images stay out of the event stream.</p><span class="flowtag">EVIDENCE_REF</span></div>
+      <div class="stage reveal d2"><span class="pulse"></span><span class="n">03 / POLICY</span><h4>Reason</h4><p>Human, vehicle, wildlife, railway and thermal policies return normalized decisions.</p><span class="flowtag">POLICY_EVALUATED</span></div>
+      <div class="stage reveal d3"><span class="pulse"></span><span class="n">04 / STATE</span><h4>Control</h4><p>Separate mission and incident lifecycles with deterministic reason codes and config-driven thresholds.</p><span class="flowtag">STATE_CHANGED</span></div>
+      <div class="stage reveal d4"><span class="pulse"></span><span class="n">05 / ACT</span><h4>Act</h4><p>Idempotent, timestamped, evidence-linked commands with a SENT → ACKNOWLEDGED lifecycle.</p><span class="flowtag">COMMAND_ACKED</span></div>
+    </div>
+    <div class="arch-flow reveal">
+      <div class="arch-card">
+        <h3>Dual-tier compute — edge &amp; cloud</h3>
+        <p>The REST proxy in this demo is the same abstraction a Jetson container exposes on the drone itself.</p>
+        <div class="dual">
+          <div>
+            <span class="label">Onboard edge (drone)</span>
+            <h4>Always available</h4>
+            <ul>
+              <li>30+ FPS tracking with minimal power</li>
+              <li>Quantized small VLM (Moondream2 / Florence-2 class)</li>
+              <li>Flight FSM + geofence / battery safety</li>
+            </ul>
+          </div>
+          <div>
+            <span class="label">Ground C2 (cloud)</span>
+            <h4>Deep reasoning, on demand</h4>
+            <ul>
+              <li>Event-driven keyframes — 20–40 KB, &gt;98% less bandwidth</li>
+              <li>Cloud VLM proxy with server-only keys</li>
+              <li>Mission replay, evidence review, dispatch</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="arch-card">
+        <h3>A replay you can interrogate</h3>
+        <p>The dashboard is a window into the event log — not a decorative HUD. Every run is deterministic and fully inspectable.</p>
+        <div class="events-row">
+          <span class="evt"><b>00.0s</b> FRAME_PROCESSED</span>
+          <span class="evt"><b>01.0s</b> THREAT_ASSESSED</span>
+          <span class="evt"><b>02.0s</b> INCIDENT_STATE_CHANGED</span>
+          <span class="evt"><b>03.0s</b> COMMAND_EMITTED</span>
+          <span class="evt"><b>04.0s</b> COMMAND_ACKNOWLEDGED</span>
+        </div>
+        <p style="margin-top:14px">Same video + same configuration → byte-equivalent event traces. That determinism is what makes this audit-ready.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= INNOVATIONS ================= -->
+<section id="innovations">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">04 · Innovation</span>
+      <h2>Not an LLM wrapper. <em>An autonomy stack.</em></h2>
+      <p class="lede">Six design decisions that separate VanRakshak from a drone with a camera and a chatbot.</p>
+    </div>
+    <div class="inno-grid">
+      <div class="inno reveal"><div class="ico"><svg viewBox="0 0 24 24"><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="5"/></svg></div><h4>Conservative by design</h4><p>Wildlife alerts and ranger dispatch — but never the human-intruder siren for elephants. Escalation is gated by persistent, confirmed evidence.</p><span class="proof">735 detections · 0 sirens for wildlife</span></div>
+      <div class="inno reveal d1"><div class="ico"><svg viewBox="0 0 24 24"><path d="M4 17l5-6 4 4 6-8"/><path d="M4 21h16"/></svg></div><h4>Evidence before action</h4><p>Every transition and command carries evidence references, threshold values, and deterministic reason codes.</p><span class="proof">AUDIT TRAIL, NOT A BLACK BOX</span></div>
+      <div class="inno reveal d2"><div class="ico"><svg viewBox="0 0 24 24"><path d="M12 2v20M12 2L7 7M12 2l5 5"/></svg></div><h4>Deterministic FSM safety</h4><p>Geofence breach and low-battery return-to-home are enforced by deterministic safety code — outside the model.</p><span class="proof">LLMs NEVER TOUCH MOTORS</span></div>
+      <div class="inno reveal"><div class="ico"><svg viewBox="0 0 24 24"><path d="M5 13l4-4 4 4 6-6"/><path d="M5 21h14"/></svg></div><h4>Closed-loop actuator ACK</h4><p>Commands declare intent; the hardware layer acknowledges execution. SENT → ACKNOWLEDGED in real time.</p><span class="proof">SIREN · SPOTLIGHT · GIMBAL · PAYLOAD</span></div>
+      <div class="inno reveal d1"><div class="ico"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h6"/><circle cx="19" cy="18" r="2.5"/></svg></div><h4>&gt;98% bandwidth reduction</h4><p>We ship event JSON and 20–40 KB keyframes — not video streams. That's what makes a multi-drone fleet on one ground station feasible.</p><span class="proof">SWARM-SCALE BY CONSTRUCTION</span></div>
+      <div class="inno reveal d2"><div class="ico"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0110 10c-4 0-7 3-7 7a10 10 0 01-3-17z"/></svg></div><h4>Offline fail-safe</h4><p>If the VLM drops, spatial-persistence threat scoring takes over — flight and safety never depend on the cloud.</p><span class="proof">GRACEFUL DEGRADATION, TESTED</span></div>
+    </div>
+    <div class="formula-card reveal">
+      <h3>The threat score fuses four independent signals — each one explainable.</h3>
+      <div class="formula">Threat = <b>0.35</b>·VLM + <b>0.25</b>·Detector + <b>0.25</b>·ZoneRisk + <b>0.15</b>·Acoustic</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FSM ================= -->
+<section id="fsm">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">05 · Autonomous mission control</span>
+      <h2>The mission <em>state machine.</em></h2>
+      <p class="lede">Deterministic transitions, config-driven thresholds, and a documented reason for every move. Click a state — or run the escalation path.</p>
+    </div>
+    <div class="fsm-wrap">
+      <div class="fsm-flow reveal">
+        <div class="fsm-node" role="button" tabindex="0" data-state="PATROL"><span class="dot"></span><div><div class="code">PATROL</div><div class="desc">Cover the search grid · anomaly gates</div></div></div>
+        <div class="fsm-arrow">THREAT &gt; 45</div>
+        <div class="fsm-node" role="button" tabindex="0" data-state="INVESTIGATE"><span class="dot"></span><div><div class="code">INVESTIGATE</div><div class="desc">Inspect the region of interest</div></div></div>
+        <div class="fsm-arrow">TARGET VERIFIED &gt; 70%</div>
+        <div class="fsm-node" role="button" tabindex="0" data-state="TRACK"><span class="dot"></span><div><div class="code">TRACK</div><div class="desc">Maintain line of sight · gimbal lock</div></div></div>
+        <div class="fsm-arrow">VLM CONFIRMS ACTIVITY</div>
+        <div class="fsm-node" role="button" tabindex="0" data-state="VERIFY"><span class="dot"></span><div><div class="code">VERIFY</div><div class="desc">Semantic confirmation before alarm</div></div></div>
+        <div class="fsm-arrow">THREAT &gt; 85</div>
+        <div class="fsm-node" role="button" tabindex="0" data-state="ALERT"><span class="dot"></span><div><div class="code">ALERT</div><div class="desc">Broadcast emergency dispatch</div></div></div>
+        <div class="fsm-arrow">SAFETY OVERRIDE</div>
+        <div class="fsm-node" role="button" tabindex="0" data-state="RETURN_HOME"><span class="dot"></span><div><div class="code">RETURN_HOME</div><div class="desc">Geofence · low battery · safe landing</div></div></div>
+      </div>
+      <div class="fsm-detail reveal d1">
+        <span class="eyebrow">State detail</span>
+        <div class="state-name" id="fsmStateName">PATROL</div>
+        <dl>
+          <dt>Objective</dt><dd id="fsmObj">Cover predefined search grid</dd>
+          <dt>Camera / payload</dt><dd id="fsmCam">Standard 45° downward angle · siren off</dd>
+          <dt>Flight behavior</dt><dd id="fsmFly">Constant airspeed 10–12 m/s · lawnmower pattern</dd>
+          <dt>Trigger to next</dt><dd id="fsmTrig">Anomaly detected — threat score &gt; 45</dd>
+        </dl>
+        <button class="btn runbtn" id="runPath">▶ Run confirmed-human path</button>
+        <div class="path-status" id="pathStatus">PATROL → INVESTIGATE → TRACK → VERIFY → ALERT</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CALCULATOR ================= -->
+<section id="calculator">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">06 · Try the engine</span>
+      <h2>Score a threat <em>yourself.</em></h2>
+      <p class="lede">The same weighted formula running in the backend — live in your browser. Drag the signals and watch the FSM respond.</p>
+    </div>
+    <div class="calc-wrap">
+      <div class="calc-panel reveal">
+        <h3>Sensor signals</h3>
+        <div class="slider-row">
+          <div class="top"><label>VLM semantic confidence<span class="weight">w = 0.35</span></label><span class="val" id="vVlm">0.80</span></div>
+          <input type="range" id="sVlm" min="0" max="1" step="0.01" value="0.80" aria-label="VLM semantic confidence" />
+        </div>
+        <div class="slider-row">
+          <div class="top"><label>Detector / track confidence<span class="weight">w = 0.25</span></label><span class="val" id="vDet">0.85</span></div>
+          <input type="range" id="sDet" min="0" max="1" step="0.01" value="0.85" aria-label="Detector confidence" />
+        </div>
+        <div class="slider-row">
+          <div class="top"><label>Zone risk (protected area)<span class="weight">w = 0.25</span></label><span class="val" id="vZone">0.60</span></div>
+          <input type="range" id="sZone" min="0" max="1" step="0.01" value="0.60" aria-label="Zone risk" />
+        </div>
+        <div class="slider-row">
+          <div class="top"><label>Acoustic signal<span class="weight">w = 0.15</span></label><span class="val" id="vAc">0.35</span></div>
+          <input type="range" id="sAc" min="0" max="1" step="0.01" value="0.35" aria-label="Acoustic score" />
+        </div>
+        <p class="launch-note">Thresholds: investigate &gt; 45 · alert &gt; 85 (config-driven, no hardcoded constants)</p>
+      </div>
+      <div class="score-panel reveal d1">
+        <span class="eyebrow">Threat score</span>
+        <div class="score-big"><span id="scoreVal">69.5</span><span class="unit">/100</span></div>
+        <div class="score-track">
+          <div class="score-fill" id="scoreFill"></div>
+          <div class="score-mark m45" style="left:45%"><span>45 · investigate</span></div>
+          <div class="score-mark m85" style="left:85%"><span>85 · alert</span></div>
+        </div>
+        <div class="score-state" id="scoreState">INVESTIGATE → TRACK</div>
+        <div class="score-bars" id="scoreBars"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PROTOTYPE ================= -->
+<!-- ================= ROADMAP ================= -->
+<section id="roadmap">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">07 · Production roadmap</span>
+      <h2>From hackathon to <em>national network.</em></h2>
+      <p class="lede">The software brain is greenlit today. The hardware is a swap-in payload — the interface contract already exists.</p>
+    </div>
+    <div class="timeline">
+      <div class="tl-grid">
+        <div class="tl reveal"><span class="dot"></span><span class="when">Now</span><h4>Prototype</h4><p>Software MVP greenlit — real perception, deterministic decisions, replay C2.</p><span class="now">This demo</span></div>
+        <div class="tl reveal d1"><span class="dot"></span><span class="when">Next 6–9 months</span><h4>Pilot</h4><p>Jetson drone integration, domain detector training, field trials with a partner forest department.</p></div>
+        <div class="tl reveal d2"><span class="dot"></span><span class="when">Year 1–2</span><h4>Forest trials</h4><p>Thermal / fire model, acoustic sensors, real protected-zone geofencing.</p></div>
+        <div class="tl reveal d3"><span class="dot"></span><span class="when">Year 2</span><h4>Commercial product</h4><p>Multi-drone fleet, ranger mobile app, C2 as a service.</p></div>
+        <div class="tl reveal d4"><span class="dot"></span><span class="when">Year 3</span><h4>Multi-state deployment</h4><p>State contracts, trained fleet operations, analytics subscription.</p></div>
+        <div class="tl reveal d5"><span class="dot"></span><span class="when">Year 4+</span><h4>National expansion</h4><p>National wildlife monitoring network — drones + ground + acoustic + satellite.</p></div>
+      </div>
+    </div>
+    <div class="phase-grid">
+      <div class="phase reveal"><span class="ph">PHASE 1</span><h4>Domain intelligence</h4><ul><li>Fire &amp; thermal-trained detectors</li><li>Acoustic event streams</li><li>Persistent event database</li><li>Swarm coordination</li><li>Satellite integration</li></ul></div>
+      <div class="phase reveal d1"><span class="ph">PHASE 2</span><h4>Hardware integration</h4><ul><li>MAVLink flight control</li><li>Physical siren &amp; spotlight</li><li>Fire-suppressant payload</li><li>Ranger body-camera fusion</li><li>Onboard TensorRT VLM</li></ul></div>
+      <div class="phase reveal d2"><span class="ph">PHASE 3</span><h4>Scale &amp; analytics</h4><ul><li>Multi-state fleets</li><li>Wildlife population analytics</li><li>Predictive wildfire monitoring</li><li>Weather intelligence</li><li>National monitoring network</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= COMMERCIAL ================= -->
+<section id="commercial">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">08 · Commercial potential</span>
+      <h2>A platform the <em>market is waiting for.</em></h2>
+      <p class="lede">Rising government investment in AI, drones, and smart conservation technology fuels demand for a scalable indigenous platform.</p>
+    </div>
+    <div class="market-grid">
+      <div class="market reveal"><span class="mnum">01</span><h4>Who we serve</h4><p>State Forest Departments, Wildlife Protection Authorities, National Parks — expanding to NGOs, eco-tourism, mining, railways &amp; disaster management.</p></div>
+      <div class="market reveal d1"><span class="mnum">02</span><h4>Their pain</h4><p>Vast unmonitored terrain, staff shortages, delayed incident detection, dangerous manual patrols in remote regions.</p></div>
+      <div class="market reveal d2"><span class="mnum">03</span><h4>Our value</h4><p>Continuous autonomous monitoring with real-time AI threat detection — faster response, lower risk, wider coverage.</p></div>
+      <div class="market reveal d3"><span class="mnum">04</span><h4>Tailwind</h4><p>India's push toward indigenous defense &amp; conservation tech, DaaS models, and 'Make in India' procurement.</p></div>
+    </div>
+    <div class="biz-grid reveal">
+      <div class="biz primary">
+        <h4>Primary revenue</h4><span class="sub">Transactions</span>
+        <ul>
+          <li><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/></svg>Drone hardware sales</li>
+          <li><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/></svg>Drone-as-a-Service (DaaS)</li>
+        </ul>
+      </div>
+      <div class="biz recurring">
+        <h4>Recurring revenue</h4><span class="sub">Subscriptions &amp; contracts</span>
+        <ul>
+          <li><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 11-8-8"/><path d="M20 4v8h-8"/></svg>Annual maintenance contracts</li>
+          <li><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 11-8-8"/><path d="M20 4v8h-8"/></svg>AI analytics subscription</li>
+          <li><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 11-8-8"/><path d="M20 4v8h-8"/></svg>Training programs</li>
+          <li><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 11-8-8"/><path d="M20 4v8h-8"/></svg>Government contracts</li>
+        </ul>
+      </div>
+    </div>
+    <div class="ask">
+      <div class="reveal">
+        <span class="eyebrow">Funding ask · MSME Idea Hackathon 6.0</span>
+        <div class="rupee">₹ 15,00,000 <small>INR · ₹15 Lakhs</small></div>
+        <h3 style="margin-top:20px">Take the brain to the <span class="lime">forest floor.</span></h3>
+        <p class="ask-sub">Funds the drone prototype, edge AI stack, dashboard build, and field validation with partner forest departments through pilot deployment.</p>
+      </div>
+      <div class="fund reveal d1" id="fundBars">
+        <div class="fund-row"><span class="fname">Drone hardware &amp; prototype</span><div class="fbar"><div class="ffill" data-w="35"></div></div><span class="fval">35%</span></div>
+        <div class="fund-row"><span class="fname">AI model development</span><div class="fbar"><div class="ffill" data-w="25"></div></div><span class="fval">25%</span></div>
+        <div class="fund-row"><span class="fname">Edge computing hardware</span><div class="fbar"><div class="ffill" data-w="15"></div></div><span class="fval">15%</span></div>
+        <div class="fund-row"><span class="fname">Dashboard development</span><div class="fbar"><div class="ffill" data-w="10"></div></div><span class="fval">10%</span></div>
+        <div class="fund-row"><span class="fname">Field testing &amp; validation</span><div class="fbar"><div class="ffill" data-w="10"></div></div><span class="fval">10%</span></div>
+        <div class="fund-row"><span class="fname">Documentation &amp; certification</span><div class="fbar"><div class="ffill" data-w="5"></div></div><span class="fval">5%</span></div>
+      </div>
+    </div>
+    <div class="comp reveal">
+      <table>
+        <thead><tr><th>Capability</th><th>Manual patrol</th><th>Static CCTV</th><th>Commercial drone</th><th class="ours">VanRakshak</th></tr></thead>
+        <tbody>
+          <tr><td>Coverage</td><td>Low</td><td>Fixed</td><td>Medium</td><td class="ours">High</td></tr>
+          <tr><td>Autonomy</td><td>None</td><td>None</td><td>Partial</td><td class="ours">Full</td></tr>
+          <tr><td>Night vision</td><td class="x">No</td><td class="part">Limited</td><td class="part">Rare</td><td class="ours chk">Yes</td></tr>
+          <tr><td>AI detection</td><td class="x">No</td><td class="x">No</td><td class="x">No</td><td class="ours chk">Yes</td></tr>
+          <tr><td>Edge computing</td><td class="x">No</td><td class="x">No</td><td class="x">No</td><td class="ours chk">Yes</td></tr>
+          <tr><td>Real-time alerts</td><td class="x">No</td><td class="x">No</td><td class="x">No</td><td class="ours chk">Yes</td></tr>
+          <tr><td>Continuous monitoring</td><td class="x">No</td><td class="part">Partial</td><td class="x">No</td><td class="ours chk">Yes</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CLOSING ================= -->
+<section id="closing">
+  <div class="wrap">
+    <span class="eyebrow reveal">From surveillance to intelligence</span>
+    <div class="big reveal d1">Protecting India's forests.<br><span class="lime">One decision at a time.</span></div>
+    <p class="lede reveal d2">We built the brain. Partner with us to put it in the air — a pilot with your forest department is the fastest path to field-validated, deployment-ready autonomy.</p>
+    <div class="actions reveal d3">
+      <a href="#commercial" class="btn">Partner a pilot</a>
+      <a href="#hero" class="btn ghost">Back to start ↑</a>
+    </div>
+    <div class="team reveal d4">
+      <div class="member"><b>Sanjeev Kumar S</b><span>Team lead · CSE</span></div>
+      <div class="member"><b>Prajan SS</b><span>Robotics &amp; Automation</span></div>
+      <div class="member"><b>Kamlesh Y</b><span>Robotics &amp; Automation</span></div>
+    </div>
+    <p style="margin-top:26px" class="reveal d5"><span class="mono">Mentor — Dr. Rajendra Thilahar C · Saveetha Engineering College · <a href="mailto:hello@sanjeevkumar.me" style="color:var(--acid)">hello@sanjeevkumar.me</a></span></p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <span>வனக் காவலன் · वनरक्षक · VANRAKSHAK — Autonomous wildlife intelligence platform · MSME Idea Hackathon 6.0</span>
+      <span class="mono" style="display:block;margin-top:8px">Greenlit software demo · not physical operation · Patent 202341070952A</span>
+      <span class="mono" style="display:block;margin-top:4px">Live C2 console: <b>make start</b> → http://127.0.0.1:5173</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ================= speaker notes ================= */
+const NOTES = {
+  hero:["⏱ 0:00 – 0:45","Open with the framing line: 'A drone is a camera with propellers. Every vendor can fly one. The value is between the pixels and the decision.'","Set expectations up front: perception and reasoning are real, running live on real footage. Telemetry and actuators are simulated.","Mention the IP patent (202341070952A) early — it signals seriousness."],
+  problem:["⏱ 0:45 – 2:15","Paint the operational reality: thousands of km², understaffed departments, incidents found hours late.","End with the punch: current drones only record footage — they don't decide anything.","Keep it to 45 seconds. This section exists to earn the solution."],
+  vision:["⏱ 2:15 – 3:00","One sentence: 'An autonomous forest response agent that patrols, understands, assesses, acts, and coordinates with rangers.'","Anchor the five pillars to the real system — each maps to a tested module."],
+  metrics:["⏱ 3:00 – 3:40","These are MEASURED numbers from real software runs on real clips, not estimates.","Call out the money metric: 0 sirens fired for wildlife — that is the product.","735 / 0 / 5,607 are measured on the clips; the 98% bandwidth figure is DERIVED from the dual-tier event-keyframe design — say 'derived', not 'measured'.","Product targets (deck), framed as targets, not results: >95% accuracy · <3 s latency · >60% cost reduction."],
+  architecture:["⏱ 3:40 – 5:10","Walk the five stages left to right: Perceive → Prove → Reason → Control → Act.","Stress the event-linked evidence: every decision carries refs, thresholds, reason codes.","The dual-tier slide answers the offline question before it's asked."],
+  innovations:["⏱ 5:10 – 6:30","This is the 'not an LLM wrapper' section. The VLM is one of four fused signals.","Lead with the elephant proof: 735 detections, 0 human sirens. Conservative by design.","Contrast beat (spoken, no demo slot): the vehicle run dispatched without a siren — 'detection is not confirmation.'","The bandwidth number (>98%) is the swarm argument."],
+  fsm:["⏱ 6:30 – 7:10","Click PATROL and walk forward, or hit 'Run confirmed-human path' for the animated escalation.","Emphasize determinism: same inputs, same transitions, same reason codes. LLMs never touch motors.","Honesty cue: the siren here is a visual pulse — audio siren is Phase 2 (physical hardware)."],
+  calculator:["⏱ 7:10 – 7:45","Invite a judge to move the sliders — it's the real formula from the backend config.","Show the thresholds: 45 investigate, 85 alert. Point out an elephant scenario (low VLM human-confirm) stays below siren."],
+  roadmap:["⏱ 7:45 – 8:30","Now = this demo. The hardware is a swap-in payload; the interface contract already exists.","Phase 1 domain models close the thermal gap; Phase 2 is MAVLink + payloads."],
+  commercial:["⏱ 8:30 – 9:30","Business model is a platform: hardware + DaaS + recurring analytics + govt contracts.","The ₹15 L ask funds hardware, AI dev, edge compute, dashboard, field trials, certification.","Close the competitive table: full autonomy + edge AI + real-time alerts is the gap."],
+  closing:["⏱ 9:30 – 10:00","End on the ask: a pilot with a partner forest department.","Then the live console (already running via make start): open http://127.0.0.1:5173 → CONFIRMED HUMAN (DEMO) or POACHING SUSPECT (DEMO) — siren banner + ACK chips, the end-to-end autonomous response (the poaching button shows the VLM activity label POACHING_SUSPECT; it is clearly a synthetic demo).","The elephant clip is pre-loaded in the console for a one-click ANALYZE if a judge asks to see it live in Q&A."]
+};
+const SECTION_IDS = ["hero","problem","vision","metrics","architecture","innovations","fsm","calculator","roadmap","commercial","closing"];
+const STATE_DETAILS = {
+  PATROL:{name:"PATROL",obj:"Cover predefined search grid",cam:"Standard 45° downward angle · siren off",fly:"Constant airspeed 10–12 m/s · lawnmower pattern",trig:"Anomaly detected — threat score > 45"},
+  INVESTIGATE:{name:"INVESTIGATE",obj:"Inspect region of interest",cam:"Zoom RGB + thermal · spotlight on",fly:"Descend to 40 m · slow speed 4 m/s",trig:"Target verified & moving — confidence > 70%"},
+  TRACK:{name:"TRACK",obj:"Maintain line of sight on target",cam:"Gimbal locked on track_id · spotlight on",fly:"Orbit target, 30 m radius",trig:"VLM confirms activity (e.g. person + equipment)"},
+  VERIFY:{name:"VERIFY",obj:"VLM semantic confirmation",cam:"Multi-angle snapshot capture · spotlight on",fly:"Hold position — hovering",trig:"VLM confidence threshold reached"},
+  ALERT:{name:"ALERT",obj:"Broadcast emergency dispatch",cam:"High-res video stream · spotlight on",fly:"High-altitude hover 60 m · emergency broadcast",trig:"Threat score > 85 & verified"},
+  RETURN_HOME:{name:"RETURN_HOME",obj:"Safe extraction to base station",cam:"Payload stowed · spotlight off",fly:"Direct line to home base",trig:"Geofence breach · battery < 25% · touchdown"}
+};
+const VIDEO_DATA = [
+  {src:"../demo_videos/04_wildlife_elephants_monitoring.mp4",cap:"The hero run: 735 detections, 11 unique tracks, wildlife alert — no siren.",stat:"04 · 450/225 frames · ~12 s",
+   interp:"VLM: “Elephants crossing a dirt road in a forest.” SAFE_WILDLIFE · LOW behavior · VLM confidence 0.80.",
+   tags:["SAFE_WILDLIFE","LOW behavior","VLM 0.80"],
+   actions:[{cmd:"WILDLIFE_ALERT",st:"ack",note:"Acknowledged — notify rangers"},{cmd:"DISPATCH_RANGER",st:"ack",note:"Acknowledged — nearest outpost"},{cmd:"SIREN_ACTIVATE",st:"held",note:"Withheld — wildlife ≠ human threat"}],
+   effects:["SIREN OFF","SPOTLIGHT ON","DISPATCH ACK"],siren:false,row:0},
+  {src:"../demo_videos/02_intruder_vehicle_surveillance.mp4",cap:"Vehicle intruder: 157 detections, 27 tracks — dispatch, no siren. Detection is not confirmation.",stat:"02 · 647/324 frames · ~10 s",
+   interp:"Persistent vehicle + person tracks (27 IDs). Detection without VLM human confirmation — routed to review, not alarm.",
+   tags:["VEHICLE_INTRUSION","27 tracks","REVIEW"],
+   actions:[{cmd:"DISPATCH_RANGER",st:"ack",note:"Acknowledged — verify in field"},{cmd:"SIREN_ACTIVATE",st:"held",note:"Withheld — no human confirmation"}],
+   effects:["SIREN OFF","SPOTLIGHT ON","DISPATCH ACK"],siren:false,row:1},
+  {src:"../demo_videos/01_thermal_intruder_drone.mp4",cap:"Thermal intruder: 0 detections. The COCO model isn't thermal-trained — we show the limit openly.",stat:"01 · 313/157 frames · ~8 s",
+   interp:"0 detections on thermal imagery. The platform routes thermal input to an explicit unsupported path rather than guessing — the operator sees the gap.",
+   tags:["THERMAL","UNSUPPORTED","0 detections"],
+   actions:[{cmd:"THERMAL_INPUT",st:"held",note:"Unsupported input flagged to operator"},{cmd:"FIRE_SUPPRESSANT_DEPLOY",st:"unavail",note:"UNAVAILABLE — hardware not installed (Phase 2)"}],
+   effects:["NO SIREN","NO SUPPRESSION","OPERATOR NOTIFIED"],siren:false,row:2},
+  {src:"../demo_videos/03_thermal_wildfire_smoke_recon.mp4",cap:"Wildfire recon: 1 detection, misclassified. Domain detectors are Phase 1 — the unsupported path is explicit.",stat:"03 · 450/225 frames · ~10 s",
+   interp:"1 detection, misclassified as “donut”. The general-purpose model is not fire-trained — no suppression can be armed on unverified fire.",
+   tags:["SMOKE","NOT FIRE-TRAINED","UNSUPPORTED"],
+   actions:[{cmd:"FIRE_SUPPRESSANT_DEPLOY",st:"unavail",note:"UNAVAILABLE — hardware not installed (Phase 2)"},{cmd:"FIRE ALERT",st:"held",note:"Withheld — cannot fire on unverified input"}],
+   effects:["NO SUPPRESSION","OPERATOR NOTIFIED"],siren:false,row:3},
+  {src:null,cap:"Confirmed human (synthetic replay): the full escalation — PATROL → … → ALERT. Siren activated and acknowledged.",stat:"SYNTHETIC · deterministic replay · no footage",
+   interp:"Confirmed persistent human + VLM verification — the escalation path the FSM is built for, replayed from the event log.",
+   tags:["CONFIRMED HUMAN","VERIFY → ALERT","ESCALATION"],
+   actions:[{cmd:"SPOTLIGHT_ON",st:"ack",note:"Acknowledged — illuminate target"},{cmd:"SIREN_ACTIVATE",st:"ack",pulse:true,note:"Acknowledged · ~300 ms round trip · audio siren in Phase 2"},{cmd:"DISPATCH_RANGER",st:"ack",note:"Acknowledged — ranger en route"}],
+   effects:["SIREN ON","SPOTLIGHT ON","DISPATCH ACK"],siren:true,row:-1}
+];
+
+/* ---------- helpers ---------- */
+const $ = (s, c=document) => c.querySelector(s);
+const $$ = (s, c=document) => Array.from(c.querySelectorAll(s));
+const clamp = (v,min,max) => Math.min(max,Math.max(min,v));
+
+/* ---------- progress + scrolled state ---------- */
+const progress = $("#progress");
+const onScroll = () => {
+  const h = document.documentElement;
+  const pct = h.scrollTop / (h.scrollHeight - h.clientHeight);
+  progress.style.width = (pct*100).toFixed(2)+"%";
+  document.body.classList.toggle("scrolled", h.scrollTop > 40);
+};
+addEventListener("scroll", onScroll, {passive:true}); onScroll();
+
+/* ---------- reveal ---------- */
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target);} });
+},{threshold:.12, rootMargin:"0px 0px -8% 0px"});
+$$(".reveal").forEach(el=>io.observe(el));
+
+/* ---------- count up ---------- */
+const countIO = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+    if(!e.isIntersecting) return;
+    const el = e.target, target = parseFloat(el.dataset.count||"0");
+    const suffix = el.dataset.suffix||"";
+    const dur = 1400, t0 = performance.now();
+    const tick = (t)=>{
+      const p = clamp((t-t0)/dur,0,1), ease = 1-Math.pow(1-p,3);
+      el.textContent = Math.round(target*ease)+suffix;
+      if(p<1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    countIO.unobserve(el);
+  });
+},{threshold:.5});
+$$("[data-count]").forEach(el=>countIO.observe(el));
+
+/* ---------- slide nav / keyboard ---------- */
+const slideLabel = $("#slideLabel"), slideCount = $("#slideCount");
+const updateSlide = ()=>{
+  const idx = SECTION_IDS.findIndex(id=>{
+    const s = document.getElementById(id); if(!s) return false;
+    const r = s.getBoundingClientRect();
+    return r.top <= window.innerHeight*0.45 && r.bottom > window.innerHeight*0.45;
+  });
+  const i = idx>=0?idx:SECTION_IDS.length-1;
+  slideCount.textContent = String(i+1).padStart(2,"0")+" / "+String(SECTION_IDS.length).padStart(2,"0");
+  slideLabel.textContent = "VanRakshak · "+SECTION_IDS[i].toUpperCase();
+};
+addEventListener("scroll", updateSlide, {passive:true}); updateSlide();
+
+addEventListener("keydown",(e)=>{
+  const tag = document.activeElement && document.activeElement.tagName;
+  if(tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT") return;
+  const cur = SECTION_IDS.findIndex(id=>{
+    const s = document.getElementById(id); if(!s) return false;
+    const r = s.getBoundingClientRect();
+    return r.top <= window.innerHeight*0.5 && r.bottom > window.innerHeight*0.5;
+  });
+  const active = cur>=0?cur:0;
+  if(e.key==="ArrowRight"||e.key==="ArrowDown"&&e.shiftKey||e.key==="PageDown"){
+    const next = clamp(active+1,0,SECTION_IDS.length-1);
+    document.getElementById(SECTION_IDS[next]).scrollIntoView({behavior:"smooth"});
+  }else if(e.key==="ArrowLeft"||e.key==="ArrowUp"&&e.shiftKey||e.key==="PageUp"){
+    const prev = clamp(active-1,0,SECTION_IDS.length-1);
+    document.getElementById(SECTION_IDS[prev]).scrollIntoView({behavior:"smooth"});
+  }else if(e.key==="Home"){ window.scrollTo({top:0,behavior:"smooth"}); }
+  else if(e.key==="End"){ document.getElementById("closing").scrollIntoView({behavior:"smooth"}); }
+  else if(e.key==="s"||e.key==="S"){ toggleNotes(); }
+});
+
+/* ---------- notes drawer ---------- */
+const notesBody = $("#notesBody");
+SECTION_IDS.forEach(id=>{
+  const notes = NOTES[id]||[];
+  const h = document.createElement("h5"); h.textContent = id.toUpperCase();
+  notesBody.appendChild(h);
+  notes.forEach(n=>{ const p = document.createElement("p"); p.textContent = n; notesBody.appendChild(p); });
+});
+const toggleNotes = ()=>{
+  const open = $("#notesDrawer").classList.toggle("open");
+  $("#notesBtn").classList.toggle("active", open);
+  $("#notesBtn").setAttribute("aria-expanded", String(open));
+};
+$("#notesBtn").addEventListener("click", toggleNotes);
+$("#notesClose").addEventListener("click", ()=>$("#notesDrawer").classList.remove("open"));
+
+/* ---------- FSM ---------- */
+const fsmNodes = $$(".fsm-node");
+const renderState = (key, pathRun)=>{
+  const d = STATE_DETAILS[key];
+  $("#fsmStateName").textContent = d.name;
+  $("#fsmObj").textContent = d.obj;
+  $("#fsmCam").textContent = d.cam;
+  $("#fsmFly").textContent = d.fly;
+  $("#fsmTrig").textContent = d.trig;
+  fsmNodes.forEach(n=>{
+    const on = n.dataset.state===key;
+    n.classList.toggle("active", on);
+    if(!pathRun) n.classList.toggle("in-path", false);
+  });
+};
+const selectState = (key,pathRun=false)=>{
+  $$(".fsm-arrow").forEach(a=>a.classList.remove("active"));
+  renderState(key,pathRun);
+};
+fsmNodes.forEach(n=>n.addEventListener("click",()=>selectState(n.dataset.state)));
+fsmNodes.forEach(n=>n.addEventListener("keydown",(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); selectState(n.dataset.state); } }));
+renderState("PATROL",false);
+$("#runPath").addEventListener("click",()=>{
+  const path = ["PATROL","INVESTIGATE","TRACK","VERIFY","ALERT"];
+  const arrows = $$(".fsm-arrow");
+  const status = $("#pathStatus");
+  $$(".fsm-arrow").forEach(a=>a.classList.remove("active"));
+  fsmNodes.forEach(n=>n.classList.remove("in-path","active"));
+  let i = 0;
+  const step = ()=>{
+    if(i<path.length){
+      renderState(path[i],true);
+      fsmNodes.forEach(n=>{ if(n.dataset.state===path[i]) n.classList.add("in-path","active"); });
+      if(i < path.length - 1 && i < arrows.length) arrows[i].classList.add("active");
+      status.textContent = "▶ "+path.slice(0,i+1).join(" → ")+"...";
+      i++;
+      setTimeout(step, 900);
+    }else{
+      status.textContent = "✔ "+path.join(" → ")+" — siren & dispatch acknowledged";
+    }
+  };
+  step();
+});
+
+/* ---------- calculator ---------- */
+const W = {vlm:.35, det:.25, zone:.25, ac:.15};
+const sels = {vlm:$("#sVlm"), det:$("#sDet"), zone:$("#sZone"), ac:$("#sAc")};
+const vals = {vlm:$("#vVlm"), det:$("#vDet"), zone:$("#vZone"), ac:$("#vAc")};
+const colorFor = (w)=> w>=.3?"#c4f27b" : w>=.2?"#3ddc97" : "#57c7b8";
+function recalc(){
+  const s = {vlm:+sels.vlm.value, det:+sels.det.value, zone:+sels.zone.value, ac:+sels.ac.value};
+  ["vlm","det","zone","ac"].forEach(k=> vals[k].textContent = s[k].toFixed(2));
+  const score = (W.vlm*s.vlm + W.det*s.det + W.zone*s.zone + W.ac*s.ac)*100;
+  $("#scoreVal").textContent = score.toFixed(1);
+  $("#scoreFill").style.width = clamp(score,0,100)+"%";
+  const state = score>85 ? "VERIFY → ALERT · dispatch + siren" :
+                score>45 ? "INVESTIGATE → TRACK" : "PATROL · continue scan";
+  $("#scoreState").textContent = state;
+  $("#scoreState").style.color = score>85 ? "var(--red)" : score>45 ? "var(--amber)" : "var(--emerald)";
+  const bars = $("#scoreBars"); bars.innerHTML="";
+  [["VLM",s.vlm,W.vlm],["DETECTOR",s.det,W.det],["ZONE",s.zone,W.zone],["ACOUSTIC",s.ac,W.ac]].forEach(([nm,val,w])=>{
+    const row=document.createElement("div"); row.className="sbar";
+    row.innerHTML=`<span class="nm">${nm}</span><div class="bar"><div class="fill" style="width:${val*100}%;background:${colorFor(w)}"></div></div><span class="pt">${(w*val*100).toFixed(1)}</span>`;
+    bars.appendChild(row);
+  });
+}
+Object.values(sels).forEach(el=>el.addEventListener("input",recalc));
+recalc();
+/* ---------- funding bars ---------- */
+const fundIO = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+    if(!e.isIntersecting) return;
+    $$(".ffill", e.target).forEach(f=>{
+      requestAnimationFrame(()=>{ f.style.width = f.dataset.w+"%"; });
+    });
+    fundIO.unobserve(e.target);
+  });
+},{threshold:.3});
+const fundEl = $("#fundBars"); if(fundEl) fundIO.observe(fundEl);
+</script>
+</body>
+</html>
