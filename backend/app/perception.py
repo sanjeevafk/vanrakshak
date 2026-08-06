@@ -2,10 +2,13 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from hashlib import sha256
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 from .schemas import Detection
 from .events import InMemoryEventStore, make_event
 from .events import Evidence
+
+if TYPE_CHECKING:
+    import numpy as np
 
 class DetectorAdapter(Protocol):
     def detect(self, frame: bytes) -> list[Detection]: ...
@@ -53,12 +56,21 @@ class CropSelector:
             if len(selected) >= self.max_per_track: break
         return selected
 
-def extract_crop(frame_bytes: bytes, bbox: list[float], *, image_format: str = ".jpg") -> bytes:
-    """Extract a clamped encoded crop; keeps raw frame data out of event payloads."""
+def extract_crop(frame_bytes: bytes | np.ndarray, bbox: list[float], *, image_format: str = ".jpg") -> bytes:
+    """Extract a clamped encoded crop; keeps raw frame data out of event payloads.
+
+    Accepts either encoded image bytes (JPEG/PNG) or a raw decoded uint8 BGR frame,
+    so callers that hand over decoded ``cv2.VideoCapture`` frames (e.g. the video
+    mission ``on_sample`` callback) do not silently lose crops.
+    """
     try:
         import cv2
         import numpy as np
-        image = cv2.imdecode(np.frombuffer(frame_bytes, dtype=np.uint8), cv2.IMREAD_COLOR)
+        image: np.ndarray | None
+        if isinstance(frame_bytes, np.ndarray):
+            image = frame_bytes
+        else:
+            image = cv2.imdecode(np.frombuffer(frame_bytes, dtype=np.uint8), cv2.IMREAD_COLOR)
         if image is None:
             raise ValueError("invalid image bytes")
         height, width = image.shape[:2]
@@ -80,7 +92,7 @@ class TrackEvidenceBuilder:
         self.selector = selector or CropSelector(max_per_track=3)
         self._candidates: dict[int, list[CropCandidate]] = {}
 
-    def add(self, *, track_id: int, frame_bytes: bytes, bbox: list[float], timestamp_seconds: float, detector_confidence: float, area: float = 0.0, sharpness: float = 0.0) -> CropCandidate:
+    def add(self, *, track_id: int, frame_bytes: bytes | np.ndarray, bbox: list[float], timestamp_seconds: float, detector_confidence: float, area: float = 0.0, sharpness: float = 0.0) -> CropCandidate:
         crop = extract_crop(frame_bytes, bbox)
         candidate = CropCandidate(track_id, timestamp_seconds, self.artifacts.put(crop), detector_confidence, area, sharpness)
         self._candidates.setdefault(track_id, []).append(candidate)

@@ -29,6 +29,30 @@ def test_extract_crop_clamps_bounds():
     crop = extract_crop(encoded.tobytes(), [-5, -5, 10, 10])
     assert crop and crop != encoded.tobytes()
 
+def test_extract_crop_accepts_raw_decoded_frame():
+    # Regression: the video mission on_sample callback hands over raw decoded BGR
+    # frames (numpy arrays), not encoded bytes. Crops must still be extractable so
+    # per-track VLM enrichment is not silently dropped on video missions.
+    import cv2
+    import numpy as np
+    frame = np.zeros((40, 40, 3), dtype=np.uint8)
+    frame[10:30, 10:30] = (0, 255, 0)
+    crop = extract_crop(frame, [10, 10, 30, 30])
+    assert crop
+    decoded = cv2.imdecode(np.frombuffer(crop, dtype=np.uint8), cv2.IMREAD_COLOR)
+    assert decoded.shape[:2] == (20, 20)
+
+def test_track_evidence_builder_accepts_raw_decoded_frames():
+    import cv2
+    import numpy as np
+    frame = np.zeros((40, 40, 3), dtype=np.uint8)
+    frame[10:30, 10:30] = (0, 255, 0)
+    builder = TrackEvidenceBuilder(InMemoryArtifactStore())
+    builder.add(track_id=9, frame_bytes=frame, bbox=[10, 10, 30, 30], timestamp_seconds=0, detector_confidence=.9)
+    selected = builder.selected(9)
+    assert len(selected) == 1
+    assert selected[0].artifact_ref.startswith("artifact-")
+
 def test_track_evidence_builder_stores_bounded_crop_artifacts():
     import cv2
     import numpy as np
