@@ -39,23 +39,6 @@ function useReducedMotion() {
   return reduced;
 }
 
-/** Track mouse position in hero for parallax. */
-function useMouseParallax(enabled: boolean) {
-  const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 });
-  useEffect(() => {
-    if (!enabled) return;
-    const handler = (e: MouseEvent) => {
-      setMouse({
-        x: e.clientX / window.innerWidth,
-        y: e.clientY / window.innerHeight,
-      });
-    };
-    window.addEventListener("mousemove", handler, { passive: true });
-    return () => window.removeEventListener("mousemove", handler);
-  }, [enabled]);
-  return mouse;
-}
-
 /* ─────────────────────────────────────────────
    COMPONENTS
    ───────────────────────────────────────────── */
@@ -102,7 +85,7 @@ function ParticleCanvas({ reducedMotion }: { reducedMotion: boolean }) {
     };
 
     const particles: Particle[] = [];
-    const count = reducedMotion ? 0 : 40;
+    const count = reducedMotion ? 0 : 30;
 
     for (let i = 0; i < count; i++) {
       const isFirefly = Math.random() < 0.15;
@@ -112,7 +95,7 @@ function ParticleCanvas({ reducedMotion }: { reducedMotion: boolean }) {
         vx: (Math.random() - 0.5) * 0.3,
         vy: isFirefly ? (Math.random() - 0.5) * 0.2 : -Math.random() * 0.4 - 0.1,
         size: isFirefly ? Math.random() * 2.5 + 1 : Math.random() * 1.5 + 0.5,
-        opacity: Math.random() * 0.3 + 0.05,
+        opacity: Math.random() * 0.25 + 0.05,
         life: Math.random() * 600,
         maxLife: Math.random() * 400 + 300,
         type: isFirefly ? "firefly" : "dust",
@@ -141,11 +124,11 @@ function ParticleCanvas({ reducedMotion }: { reducedMotion: boolean }) {
 
         if (p.type === "firefly") {
           const pulse = 0.5 + 0.5 * Math.sin(p.life * 0.05);
-          ctx.fillStyle = `rgba(182, 243, 107, ${alpha * pulse * 0.7})`;
-          ctx.shadowColor = "rgba(182, 243, 107, 0.3)";
-          ctx.shadowBlur = 8;
+          ctx.fillStyle = `rgba(39, 165, 103, ${alpha * pulse * 0.7})`;
+          ctx.shadowColor = "rgba(39, 165, 103, 0.35)";
+          ctx.shadowBlur = 6;
         } else {
-          ctx.fillStyle = `rgba(200, 220, 200, ${alpha * 0.5})`;
+          ctx.fillStyle = `rgba(80, 117, 100, ${alpha * 0.4})`;
           ctx.shadowColor = "transparent";
           ctx.shadowBlur = 0;
         }
@@ -177,22 +160,22 @@ function ParticleCanvas({ reducedMotion }: { reducedMotion: boolean }) {
 
 const SEE_HUD_ITEMS = [
   { label: "DETECTION", value: "PERSON", color: "#FF8B70" },
-  { label: "TRACK ID", value: "T-0042", color: "#B6F36B" },
-  { label: "CONFIDENCE", value: "0.94", color: "#71E29B" },
-  { label: "BOUNDING BOX", value: "[234, 118, 312, 287]", color: "#7FA991" },
+  { label: "TRACK ID", value: "T-0042", color: "#5BE093" },
+  { label: "CONFIDENCE", value: "0.94", color: "#27A567" },
+  { label: "BOUNDING BOX", value: "[234, 118, 312, 287]", color: "#A8D5BA" },
 ];
 
 const UNDERSTAND_HUD_ITEMS = [
-  { label: "SCENE", value: "PROTECTED FOREST", color: "#71E29B" },
-  { label: "ACTIVITY", value: "PERSISTENT TRACK", color: "#FFBD62" },
+  { label: "SCENE", value: "PROTECTED FOREST", color: "#27A567" },
+  { label: "ACTIVITY", value: "PERSISTENT TRACK", color: "#C08B2D" },
   { label: "CONTEXT", value: "HIGH-RISK ZONE", color: "#FF8B70" },
-  { label: "CONFIDENCE", value: "0.87", color: "#B6F36B" },
+  { label: "CONFIDENCE", value: "0.87", color: "#5BE093" },
 ];
 
 const ACT_HUD_ITEMS = [
-  { label: "POLICY", value: "WILDLIFE_ALERT", color: "#71E29B" },
-  { label: "ACTION", value: "RANGER_DISPATCH", color: "#B6F36B" },
-  { label: "STATUS", value: "ACKNOWLEDGED", color: "#71E29B" },
+  { label: "POLICY", value: "WILDLIFE_ALERT", color: "#27A567" },
+  { label: "ACTION", value: "RANGER_DISPATCH", color: "#5BE093" },
+  { label: "STATUS", value: "ACKNOWLEDGED", color: "#27A567" },
   { label: "PRIORITY", value: "HIGH", color: "#FF8B70" },
 ];
 
@@ -232,24 +215,25 @@ const SAFETY_PILLARS = [
    MAIN COMPONENT
    ───────────────────────────────────────────── */
 
-export default function Home({ onNavigate }: { onNavigate: () => void }) {
+export default function Home({ onNavigate }: { onNavigate: (x?: number, y?: number) => void }) {
   const [scrollY, setScrollY] = useState(0);
   const [heroLoaded, setHeroLoaded] = useState(false);
   const reducedMotion = useReducedMotion();
-  const mouse = useMouseParallax(!reducedMotion);
-  const globeSectionRef = useRef<HTMLElement>(null);
-  const benchmarkSectionRef = useRef<HTMLElement>(null);
   const [benchmarkVisible, setBenchmarkVisible] = useState(false);
+  const benchmarkSectionRef = useRef<HTMLElement>(null);
   const benchmarkLineRef = useRef<HTMLDivElement>(null);
 
-  // Globe RAF-driven state (refs for zero-react-render performance)
+  // ── Cursor globe state (refs for zero-RERENDER performance) ──
+  const cursorRef = useRef({ x: -100, y: -100 });
+  const globePosRef = useRef({ x: -100, y: -100 });
   const globeContainerRef = useRef<HTMLDivElement>(null);
-  const smoothScrollRef = useRef(0);
   const globeRafRef = useRef<number>(0);
-  const benchmarksOffsetRef = useRef(0);
-  const [globeScrollProgress, setGlobeScrollProgress] = useState(0);
-  const [globeExitProgress, setGlobeExitProgress] = useState(0);
-  const [globeMode, setGlobeMode] = useState<"geographic" | "intelligence">("geographic");
+  const [globeTime, setGlobeTime] = useState(0);
+  const [globeVisible, setGlobeVisible] = useState(false);
+  const [globeHovering, setGlobeHovering] = useState(false);
+  const isTouchDevice = useRef(
+    typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0)
+  );
 
   // Hero entrance animation
   useEffect(() => {
@@ -257,109 +241,83 @@ export default function Home({ onNavigate }: { onNavigate: () => void }) {
     return () => clearTimeout(timer);
   }, []);
 
-  // Compute benchmarks section offset on mount and resize
+  // ── Cursor tracking (passive, stores raw mouse position) ──
   useEffect(() => {
-    const update = () => {
-      const el = benchmarkSectionRef.current;
-      if (el) {
-        benchmarksOffsetRef.current = el.getBoundingClientRect().top + window.scrollY;
-      }
+    if (isTouchDevice.current || reducedMotion) return;
+
+    const onMove = (e: MouseEvent) => {
+      cursorRef.current = { x: e.clientX, y: e.clientY };
+      if (!globeVisible) setGlobeVisible(true);
     };
-    // Delay to ensure layout is complete
-    const timer = setTimeout(update, 300);
-    window.addEventListener("resize", update);
+    const onLeave = () => {
+      cursorRef.current = { x: -100, y: -100 };
+    };
+
+    window.addEventListener("mousemove", onMove, { passive: true });
+    document.addEventListener("mouseleave", onLeave);
     return () => {
-      clearTimeout(timer);
-      window.removeEventListener("resize", update);
+      window.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseleave", onLeave);
     };
-  }, []);
+  }, [reducedMotion, globeVisible]);
 
-  // RAF-driven globe animation loop (smooth scroll interpolation + exit transition)
+  // ── Detect hovering over clickable elements ──
   useEffect(() => {
-    const tick = () => {
-      const target = window.scrollY;
-      const prev = smoothScrollRef.current;
+    if (isTouchDevice.current || reducedMotion) return;
 
-      if (reducedMotion) {
-        smoothScrollRef.current = target;
-      } else {
-        // Smooth interpolation toward target scroll position
-        const ease = 0.08;
-        smoothScrollRef.current += (target - prev) * ease;
-        if (Math.abs(target - smoothScrollRef.current) < 0.5) {
-          smoothScrollRef.current = target;
-        }
-      }
+    const onMove = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const clickable = target.closest("a, button, [role='button'], .btn-primary, .btn-secondary, .btn-cta-premium, .nav-cta, .nav-links button, .hero-actions button");
+      setGlobeHovering(!!clickable);
+    };
 
-      const scroll = smoothScrollRef.current;
+    window.addEventListener("mousemove", onMove, { passive: true });
+    return () => window.removeEventListener("mousemove", onMove);
+  }, [reducedMotion]);
 
-      // ── Scroll progress for globe rotation ──
-      const maxScroll = 3000;
-      const scrollProgress = Math.min(Math.max(scroll / maxScroll, 0), 1);
+  // ── RAF-driven cursor globe smooth follow + rotation (uses real time) ──
+  useEffect(() => {
+    if (isTouchDevice.current || reducedMotion) return;
 
-      // ── Exit progress: globe dissolves as user approaches benchmarks ──
-      const benchmarksTop = benchmarksOffsetRef.current || 4000;
-      const vh = window.innerHeight;
-      const exitStart = benchmarksTop - vh * 0.9;
-      const exitEnd = benchmarksTop + vh * 0.2;
-      const exitRange = exitEnd - exitStart;
-      const exitProgress = exitRange > 0
-        ? Math.max(0, Math.min(1, (scroll - exitStart) / exitRange))
-        : 0;
+    const lerpFactor = 0.12; // smooth follow lag
+    let running = true;
+    let lastFrameTime = performance.now();
 
-      // ── Base scale (gradual shrink as user scrolls down) ──
-      let baseScale: number;
-      if (scroll < 100) baseScale = 1;
-      else if (scroll < 800) baseScale = 1 - (scroll - 100) * 0.0003;
-      else baseScale = 0.8 - Math.min((scroll - 800) * 0.00005, 0.15);
+    const tick = (now: number) => {
+      if (!running) return;
 
-      // ── Exit scale: globe expands outward during dissolve ──
-      const exitScale = exitProgress * 0.35;
-      const totalScale = baseScale + exitScale;
+      const target = cursorRef.current;
+      const pos = globePosRef.current;
 
-      // ── Opacity: base fade + exit fade ──
-      let baseOpacity: number;
-      if (scroll < 50) baseOpacity = 1;
-      else baseOpacity = 1 - (scroll - 50) * 0.0002;
-      baseOpacity = Math.max(0, Math.min(1, baseOpacity));
-      const totalOpacity = baseOpacity * (1 - exitProgress);
+      // Lerp toward cursor
+      pos.x += (target.x - pos.x) * lerpFactor;
+      pos.y += (target.y - pos.y) * lerpFactor;
 
-      // ── Blur for cinematic dissolve ──
-      const blur = reducedMotion ? 0 : exitProgress * 5;
-
-      // ── Apply to globe container DOM (no React re-render) ──
+      // Apply to DOM directly (no React re-render)
       if (globeContainerRef.current) {
         const s = globeContainerRef.current.style;
-        s.opacity = String(Math.max(0, totalOpacity));
-        s.transform = `translate3d(-50%, -50%, 0) scale(${totalScale})`;
-        s.filter = blur > 0.1 ? `blur(${blur}px)` : "";
+        s.transform = `translate3d(${pos.x - 35}px, ${pos.y - 35}px, 0)`;
+        s.opacity = target.x < -50 ? "0" : "1";
       }
 
-      // ── Throttled React state updates for Globe props ──
-      // Only update when values change meaningfully (avoid ~60fps re-renders)
-      const roundedSP = Math.round(scrollProgress * 200) / 200;
-      const roundedEP = Math.round(exitProgress * 100) / 100;
-      setGlobeScrollProgress((prev) => {
-        if (Math.abs(prev - roundedSP) > 0.005) return roundedSP;
-        return prev;
-      });
-      setGlobeExitProgress((prev) => {
-        if (Math.abs(prev - roundedEP) > 0.005) return roundedEP;
-        return prev;
-      });
-
-      // ── Globe mode: switches to "intelligence" as user approaches benchmarks ──
-      const newMode: "geographic" | "intelligence" = scrollProgress > 0.7 ? "intelligence" : "geographic";
-      setGlobeMode((prev) => (prev !== newMode ? newMode : prev));
+      // Update globe rotation time using real timestamps (throttled to ~20fps for canvas)
+      const delta = now - lastFrameTime;
+      if (delta > 48) { // ~20fps throttle for canvas redraw
+        lastFrameTime = now;
+        setGlobeTime(now);
+      }
 
       globeRafRef.current = requestAnimationFrame(tick);
     };
 
     globeRafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(globeRafRef.current);
+    return () => {
+      running = false;
+      cancelAnimationFrame(globeRafRef.current);
+    };
   }, [reducedMotion]);
 
-  // Also update scrollY for nav state (lightweight, separate from globe RAF)
+  // ── ScrollY for nav state ──
   useEffect(() => {
     const onScroll = () => {
       setScrollY(window.scrollY);
@@ -368,7 +326,7 @@ export default function Home({ onNavigate }: { onNavigate: () => void }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Benchmark section observer
+  // ── Benchmark section observer ──
   useEffect(() => {
     const el = benchmarkSectionRef.current;
     if (!el) return;
@@ -385,27 +343,30 @@ export default function Home({ onNavigate }: { onNavigate: () => void }) {
     return () => obs.disconnect();
   }, []);
 
-  // Benchmark glow line animation
+  // ── Benchmark glow line animation ──
   useEffect(() => {
     if (!benchmarkVisible || !benchmarkLineRef.current) return;
     const el = benchmarkLineRef.current;
     el.style.transition = "none";
     el.style.transform = "translateX(-100%)";
+    let rafId: number;
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
+      rafId = requestAnimationFrame(() => {
         el.style.transition = "transform 2s cubic-bezier(0.22, 1, 0.36, 1)";
         el.style.transform = "translateX(100%)";
       });
     });
+    return () => cancelAnimationFrame(rafId);
   }, [benchmarkVisible]);
 
   function scrollToId(id: string) {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   }
 
-  // Parallax values for hero layers
-  const px = (factor: number) => reducedMotion ? 0 : (mouse.x - 0.5) * factor;
-  const py = (factor: number) => reducedMotion ? 0 : (mouse.y - 0.5) * factor;
+  const handleNavigate = useCallback(() => {
+    const pos = globePosRef.current;
+    onNavigate(pos.x, pos.y);
+  }, [onNavigate]);
 
   // Nav scroll state
   const navScrolled = scrollY > 60;
@@ -418,31 +379,34 @@ export default function Home({ onNavigate }: { onNavigate: () => void }) {
       {/* ── HERO ATMOSPHERIC LAYERS ── */}
       <div className="hero-atmosphere" aria-hidden="true">
         <div className="atmo-gradient" />
-        <div className="atmo-layer atmo-forest-far" style={{ transform: `translate(${px(5)}px, ${py(3)}px)` }} />
-        <div className="atmo-layer atmo-forest-mid" style={{ transform: `translate(${px(12)}px, ${py(6)}px)` }} />
-        <div className="atmo-layer atmo-fog" style={{ transform: `translate(${px(8)}px, ${py(2)}px)` }} />
-        <div className="atmo-layer atmo-light-rays" style={{ transform: `translate(${px(15)}px, ${py(4)}px)` }} />
+        <div className="atmo-layer atmo-forest-far" />
+        <div className="atmo-layer atmo-forest-mid" />
+        <div className="atmo-layer atmo-fog" />
+        <div className="atmo-layer atmo-light-rays" />
         <div className="atmo-vignette" />
         <div className="atmo-noise" />
       </div>
 
-      {/* ── FIXED GLOBE (centered, behind content, RAF-driven) ── */}
-      <div
-        ref={globeContainerRef}
-        className="globe-fixed"
-        aria-hidden="true"
-        style={{
-          opacity: 1,
-          transform: "translate3d(-50%, -50%, 0) scale(1)",
-        }}
-      >
-        <Globe
-          scrollProgress={globeScrollProgress}
-          exitProgress={globeExitProgress}
-          mode={globeMode}
-          size={Math.min(window.innerWidth * 0.7, 650)}
-        />
-      </div>
+      {/* ── CURSOR GLOBE (small, translucent, follows pointer) ── */}
+      {!isTouchDevice.current && !reducedMotion && (
+        <div
+          ref={globeContainerRef}
+          className={`cursor-globe ${globeVisible ? "visible" : ""} ${globeHovering ? "hovering" : ""}`}
+          aria-hidden="true"
+          style={{
+            width: 70,
+            height: 70,
+            position: "fixed",
+            top: 0,
+            left: 0,
+            zIndex: 50,
+            pointerEvents: "none",
+            willChange: "transform",
+          }}
+        >
+          <Globe size={70} time={globeTime} />
+        </div>
+      )}
 
       {/* ── NAV ── */}
       <nav className={`home-nav ${navScrolled ? "nav-scrolled" : ""}`}>
@@ -455,7 +419,7 @@ export default function Home({ onNavigate }: { onNavigate: () => void }) {
             <button onClick={() => scrollToId("act")}>ACT</button>
             <button onClick={() => scrollToId("benchmarks")}>Benchmarks</button>
           </div>
-          <button className="nav-cta" onClick={onNavigate}>
+          <button className="nav-cta" onClick={handleNavigate}>
             ENTER MISSION →
           </button>
         </div>
@@ -463,10 +427,7 @@ export default function Home({ onNavigate }: { onNavigate: () => void }) {
 
       {/* ── HERO ── */}
       <section className={`hero ${heroLoaded ? "hero-loaded" : ""}`}>
-        <div
-          className="hero-text"
-          style={{ transform: reducedMotion ? undefined : `translate(${px(2)}px, ${py(1)}px)` }}
-        >
+        <div className="hero-text">
           <p className="hero-eyebrow hero-anim hero-anim-1">AI-ASSISTED FOREST MONITORING</p>
           <h1 className="hero-headline hero-anim hero-anim-2">
             VANRAKSHAK
@@ -480,7 +441,7 @@ export default function Home({ onNavigate }: { onNavigate: () => void }) {
             verify and respond to threats across protected forests.
           </p>
           <div className="hero-actions hero-anim hero-anim-4">
-            <button className="btn-primary btn-cta-premium" onClick={onNavigate}>
+            <button className="btn-primary btn-cta-premium" onClick={handleNavigate}>
               <span className="cta-text">ENTER MISSION CONTROL</span>
               <span className="cta-arrow">→</span>
             </button>
@@ -516,10 +477,9 @@ export default function Home({ onNavigate }: { onNavigate: () => void }) {
             <div className="story-visual">
               <div className="cinematic-image">
                 <img
-                  src="https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=900&q=80"
+                  src="/images/drone-monitoring.jpg"
                   alt="Drone monitoring over forest canopy"
                   loading="lazy"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                 />
                 <div className="cinematic-overlay" />
                 <div className="cinematic-grain" />
@@ -550,10 +510,9 @@ export default function Home({ onNavigate }: { onNavigate: () => void }) {
             <div className="story-visual">
               <div className="cinematic-image">
                 <img
-                  src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=900&q=80"
-                  alt="Forest surveillance perspective"
+                  src="/images/forest-canopy.jpg"
+                  alt="Dense tropical forest canopy"
                   loading="lazy"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                 />
                 <div className="cinematic-overlay" />
                 <div className="cinematic-grain" />
@@ -610,10 +569,9 @@ export default function Home({ onNavigate }: { onNavigate: () => void }) {
             <div className="story-visual">
               <div className="cinematic-image">
                 <img
-                  src="https://images.unsplash.com/photo-1446329813274-7c9036bd9a1f?w=900&q=80"
+                  src="/images/ranger-conservation.jpg"
                   alt="Conservation team monitoring protected forest"
                   loading="lazy"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                 />
                 <div className="cinematic-overlay" />
                 <div className="cinematic-grain" />
@@ -750,7 +708,7 @@ export default function Home({ onNavigate }: { onNavigate: () => void }) {
             <p className="cta-sub">
               Move from the concept to the command layer.
             </p>
-            <button className="btn-console btn-lg btn-cta-premium" onClick={onNavigate}>
+            <button className="btn-primary btn-lg btn-cta-premium" onClick={handleNavigate}>
               <span className="cta-text">ENTER MISSION CONTROL</span>
               <span className="cta-arrow">→</span>
             </button>
@@ -770,7 +728,7 @@ export default function Home({ onNavigate }: { onNavigate: () => void }) {
           <div className="footer-links">
             <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>Home</button>
             <button onClick={() => scrollToId("benchmarks")}>Benchmarks</button>
-            <button onClick={onNavigate}>Mission Console</button>
+            <button onClick={handleNavigate}>Mission Console</button>
             <button onClick={() => scrollToId("safety")}>About</button>
           </div>
         </div>
