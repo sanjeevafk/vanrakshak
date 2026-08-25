@@ -24,6 +24,7 @@ dist-ssr/
 
 # Videos & Heavy Assets (Excluded from remote repository)
 demo_videos/
+datasets/
 *.mp4
 *.part
 *.avi
