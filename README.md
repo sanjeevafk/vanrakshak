@@ -2,12 +2,33 @@
 ### Autonomous AI Drone Patrolling & Forest Defense System
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![Hugging Face Model](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Model%20(YOLOv8n)-yellow)](https://huggingface.co/sanjeevafk/vanrakshak-forest-yolov8n)
+[![Hugging Face Dataset](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Dataset%20(7.9k%20Images)-blue)](https://huggingface.co/datasets/sanjeevafk/vanrakshak-forest-aerial-thermal)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)](backend/)
 [![React](https://img.shields.io/badge/Frontend-React_18_%2B_Vite-61DAFB?logo=react)](frontend/)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi)](backend/)
 [![Status](https://img.shields.io/badge/Build-Passing-brightgreen)]()
 
 **VanRakshak** is an open-source, edge-native autonomous drone surveillance and command-and-control (C2) platform engineered for **wildfire detection**, **anti-poaching defense**, **illegal logging interdiction**, and **wildlife conservation**.
+
+---
+
+## Pre-trained Models & Datasets
+
+- **Hugging Face Model Hub**: [sanjeevafk/vanrakshak-forest-yolov8n](https://huggingface.co/sanjeevafk/vanrakshak-forest-yolov8n) (PyTorch + Edge ONNX weights)
+- **Hugging Face Dataset Hub**: [sanjeevafk/vanrakshak-forest-aerial-thermal](https://huggingface.co/datasets/sanjeevafk/vanrakshak-forest-aerial-thermal) (7,946 aerial and LWIR thermal frames)
+- **1-Click Google Colab Training**: [vanrakshak_yolov8_training.ipynb](https://colab.research.google.com/github/sanjeevafk/vanrakshak/blob/main/vanrakshak_yolov8_training.ipynb)
+
+### Empirical Model Benchmarks (Tesla T4 GPU)
+
+| Metric | Measured Score | Hardware / Note |
+|---|---|---|
+| **mAP@50** | **80.76%** | High-altitude bounding box detection quality |
+| **Precision** | **83.76%** | Ultra-low false alarm rate for autonomous ranger alerting |
+| **Recall** | **72.45%** | Robust target recall across canopy occlusion & night thermal |
+| **mAP@50-95** | **42.71%** | Strict multi-IoU geometric precision |
+| **Inference Latency** | **2.7 ms** | **~190+ FPS throughput** on GPU (5.2 ms end-to-end frame turnaround) |
+| **Model Size** | **3.0M params** | **6.0 MB** PyTorch (`best.pt`) / **11.7 MB** ONNX (`best.onnx`) |
 
 ---
 
