@@ -145,10 +145,9 @@ vanrakshak/
 
 ## 📚 Technical Documentation & Deep Dives
 
-- 📖 [MAVLink & SITL Integration Blueprint](docs/MAVLINK_SITL_IMPLEMENTATION.md)
+- 📖 [System Architecture & Design](docs/ARCHITECTURE.md)
+- 🚁 [MAVLink & SITL Integration Blueprint](docs/MAVLINK_SITL_IMPLEMENTATION.md)
 - 🎯 [Forest YOLO Fine-Tuning Guide](docs/YOLO_FINETUNING_IMPLEMENTATION.md)
-- 📊 [Architecture & Strategy Guide](docs/vanrakshak_architecture_and_pitch_guide.md)
-- 🖥️ [Interactive MSME Pitch Presentation](docs/vanrakshak_msme_presentation.html)
 
 ---
 
