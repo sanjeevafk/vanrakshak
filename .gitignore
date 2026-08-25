@@ -37,6 +37,10 @@ demo_videos/
 *.tflite
 weights/
 
+# Local-Only Implementation Plans
+docs/*IMPLEMENTATION.md
+*IMPLEMENTATION.md
+
 # Operating System & Editors
 .DS_Store
 Thumbs.db

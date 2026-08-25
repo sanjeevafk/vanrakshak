@@ -127,9 +127,7 @@ vanrakshak/
 │   ├── tests/                # Vitest test suite
 │   └── vite.config.ts        # Vite build configuration
 ├── docs/                     # Technical specifications and guides
-│   ├── ARCHITECTURE.md                     # System architecture specification
-│   ├── MAVLINK_SITL_IMPLEMENTATION.md      # ArduPilot SITL Integration Guide
-│   └── YOLO_FINETUNING_IMPLEMENTATION.md   # Domain Model Fine-Tuning Blueprint
+│   └── ARCHITECTURE.md                     # System architecture specification
 ├── scripts/                  # Automation & Benchmark Runners
 │   ├── start_app.sh          # One-command dual server launcher
 │   ├── run_evals.sh          # Automated evaluation and test runner
@@ -142,11 +140,9 @@ vanrakshak/
 
 ---
 
-## Technical Documentation & Deep Dives
+## Technical Documentation
 
-- [System Architecture & Design](docs/ARCHITECTURE.md)
-- [MAVLink & SITL Integration Blueprint](docs/MAVLINK_SITL_IMPLEMENTATION.md)
-- [Forest YOLO Fine-Tuning Guide](docs/YOLO_FINETUNING_IMPLEMENTATION.md)
+- [System Architecture & Design Specification](docs/ARCHITECTURE.md)
 
 ---
 
