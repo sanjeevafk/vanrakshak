@@ -57,9 +57,10 @@ class ThermalFirePolicy(Policy):
     policy_id = "thermal_fire"
 
     def evaluate(self, data: dict[str, Any]) -> list[PolicyDecision]:
-        if data.get("input_type") != "thermal":
+        if data.get("input_type") != "thermal" and data.get("class_name") not in {"fire", "smoke", "fire_hazard"} and data.get("activity_type") not in {"FIRE_HAZARD", "FOREST_FIRE", "FIRE"}:
             return []
-        return [PolicyDecision(policy_id=self.policy_id, decision="UNSUPPORTED_INPUT", severity="UNKNOWN", confidence=0, evidence_refs=data.get("evidence_refs", []))]
+        confidence = float(data.get("confidence", 0.9))
+        return [PolicyDecision(policy_id=self.policy_id, decision="RECOMMEND_ALERT", severity="CRITICAL", track_id=data.get("track_id"), confidence=confidence, evidence_refs=data.get("evidence_refs", []), recommended_actions=["FIRE_SUPPRESSANT_DEPLOY", "DISPATCH_RANGER"])]
 
 
 class PolicyEngine:

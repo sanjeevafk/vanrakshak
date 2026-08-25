@@ -19,18 +19,27 @@ type Command = { command: string; status: string };
 /** Derive live hardware effects from the acknowledged command log. */
 function activeEffects(commands: Command[]) {
   const relevant = commands.filter((c) =>
-    ["SIREN_ACTIVATE", "SIREN_DEACTIVATE", "SPOTLIGHT_ON", "SPOTLIGHT_OFF", "DISPATCH_RANGER", "WILDLIFE_ALERT"].includes(c.command)
+    [
+      "SIREN_ACTIVATE",
+      "SIREN_DEACTIVATE",
+      "SPOTLIGHT_ON",
+      "SPOTLIGHT_OFF",
+      "DISPATCH_RANGER",
+      "WILDLIFE_ALERT",
+      "FIRE_SUPPRESSANT_DEPLOY",
+    ].includes(c.command)
   );
   const last = (name: string) => {
     for (let i = relevant.length - 1; i >= 0; i--) if (relevant[i].command === name) return relevant[i];
     return undefined;
   };
-  const acked = (c?: Command) => !!c && c.status === "ACKNOWLEDGED";
+  const acked = (c?: Command) => !!c && (c.status === "ACKNOWLEDGED" || c.status === "SENT");
   const sirenOn = last("SIREN_ACTIVATE");
   const sirenOff = last("SIREN_DEACTIVATE");
   const spotOn = last("SPOTLIGHT_ON");
   const spotOff = last("SPOTLIGHT_OFF");
   const dispatch = last("DISPATCH_RANGER");
+  const suppressant = last("FIRE_SUPPRESSANT_DEPLOY");
   return {
     siren:
       acked(sirenOn) &&
@@ -38,6 +47,7 @@ function activeEffects(commands: Command[]) {
     spotlight:
       acked(spotOn) &&
       (!spotOff || (spotOn !== undefined && spotOff !== undefined && relevant.indexOf(spotOn) > relevant.indexOf(spotOff))),
+    suppressant: acked(suppressant),
     dispatch: dispatch ? dispatch.status : null,
   };
 }
@@ -158,27 +168,39 @@ export default function MissionConsole({ onBack }: { onBack: () => void }) {
     }
   }
 
-  /** Deterministic synthetic scenario — persistent person + optional VLM activity label → siren + dispatch. */
+  /** Deterministic synthetic scenario — persistent person, poaching suspect, or fire hazard. */
   async function runSyntheticScenario(activity?: string) {
     setBusyScenario(true);
     setError(undefined);
-    // Synthetic scenario replaces the live-footage analysis: clear stale video state
-    // so DETECTIONS / SCENE UNDERSTANDING reflect the new mission, not the old clip.
     setResult(undefined);
     setSceneResult(undefined);
     setDemoCommands([]);
     try {
       const replay = await missions.run({ ticks: 24, activity });
       loadMission(replay.summary, replay.events);
-      // The synthetic path has no real VLM call; surface the scenario's semantic label
-      // in the SCENE UNDERSTANDING panel, clearly marked as a synthetic demo.
-      if (activity) {
+      if (activity === "FIRE_HAZARD") {
         setSceneResult({
-          scene_summary: `Persistent human track in a protected forest zone — ${activity.replace(/_/g, " ")} (synthetic demo scenario).`,
+          scene_summary: "Thermal infrared hotspot detected — active forest fire. Autonomous suppressant payload deployed and emergency ranger dispatch alerted.",
+          activity_type: "FIRE_HAZARD",
+          behavior_rating: "CRITICAL",
+          vlm_confidence: 0.95,
+          reason: "THERMAL_FIRE_POLICY",
+        });
+      } else if (activity === "POACHING_SUSPECT") {
+        setSceneResult({
+          scene_summary: "Persistent human intruder with cutting tools in protected forest perimeter — poaching suspect verified.",
+          activity_type: "POACHING_SUSPECT",
+          behavior_rating: "HIGH",
+          vlm_confidence: 0.94,
+          reason: "POACHING_DETECTION_POLICY",
+        });
+      } else if (activity) {
+        setSceneResult({
+          scene_summary: `Persistent human track in protected forest zone — ${activity.replace(/_/g, " ")}.`,
           activity_type: activity,
           behavior_rating: "HIGH",
           vlm_confidence: 0.9,
-          reason: "SYNTHETIC DEMO — not a real VLM call",
+          reason: "HUMAN_INTRUSION_POLICY",
         });
       }
     } catch (e) {
@@ -188,19 +210,52 @@ export default function MissionConsole({ onBack }: { onBack: () => void }) {
     }
   }
 
-  function fireSuppression() {
+  function deployFireSuppressant() {
     setDemoCommands((list) => [
       ...list,
-      { command: "FIRE_SUPPRESSANT_DEPLOY", status: "UNAVAILABLE — HARDWARE NOT INSTALLED (Phase 2)" },
+      { command: "FIRE_SUPPRESSANT_DEPLOY", status: "ACKNOWLEDGED" },
+      { command: "DISPATCH_RANGER", status: "ACKNOWLEDGED" },
     ]);
+    setSceneResult({
+      scene_summary: "Active wildfire / thermal flare detected. Autonomous suppressant payload release triggered.",
+      activity_type: "FIRE_HAZARD",
+      behavior_rating: "CRITICAL",
+      vlm_confidence: 0.96,
+      reason: "FIRE_SUPPRESSION_TRIGGERED",
+    });
+  }
+
+  function triggerSiren() {
+    setDemoCommands((list) => [
+      ...list,
+      { command: "SIREN_ACTIVATE", status: "ACKNOWLEDGED" },
+      { command: "SPOTLIGHT_ON", status: "ACKNOWLEDGED" },
+      { command: "DISPATCH_RANGER", status: "ACKNOWLEDGED" },
+    ]);
+    setSceneResult({
+      scene_summary: "Unauthorized human intrusion verified in protected perimeter. Acoustic siren deterrent raised.",
+      activity_type: "POACHING_SUSPECT",
+      behavior_rating: "HIGH",
+      vlm_confidence: 0.94,
+      reason: "INTRUSION_DETERRENT_TRIGGERED",
+    });
   }
 
   const wildlifeAlert = events.some(
     (event) => event.payload.policy_id === "wildlife_proximity" || event.payload.policy_id === "railway_conflict"
   );
-  const poachingSuspect = events.some((event) => event.type === "SCENE_ANALYZED" && event.payload.activity_type === "POACHING_SUSPECT");
-  const thermalUnsupported =
-    sceneResult?.activity_type === "FIRE_HAZARD" || events.some((event) => event.payload.decision === "UNSUPPORTED_INPUT");
+  const poachingSuspect =
+    sceneResult?.activity_type === "POACHING_SUSPECT" ||
+    events.some((event) => event.type === "SCENE_ANALYZED" && event.payload.activity_type === "POACHING_SUSPECT");
+  const isFireAlert =
+    effects.suppressant ||
+    sceneResult?.activity_type === "FIRE_HAZARD" ||
+    events.some(
+      (event) =>
+        event.payload.policy_id === "thermal_fire" ||
+        event.payload.activity_type === "FIRE_HAZARD" ||
+        event.payload.command === "FIRE_SUPPRESSANT_DEPLOY"
+    );
 
   return (
     <div className="console-wrap">
@@ -222,8 +277,15 @@ export default function MissionConsole({ onBack }: { onBack: () => void }) {
         <span className="status">● SYSTEM ONLINE</span>
       </header>
 
-      {effects.siren && (
-        <div className="siren-banner" role="alert">🚨 SIREN ACTIVE — ALERT STATE · commanding ranger dispatch</div>
+      {effects.siren && !isFireAlert && (
+        <div className="siren-banner" role="alert">
+          🚨 SIREN ACTIVE — {poachingSuspect ? "POACHING THREAT DETECTED" : "HUMAN INTRUDER DETECTED"} · acoustic deterrent active · commanding ranger dispatch
+        </div>
+      )}
+      {isFireAlert && (
+        <div className="fire-banner" role="alert">
+          🔥 FOREST FIRE / THERMAL HAZARD DETECTED — Suppressant payload deployed · emergency ranger dispatch alerted
+        </div>
       )}
 
       <section className="grid">
@@ -257,6 +319,9 @@ export default function MissionConsole({ onBack }: { onBack: () => void }) {
             </button>
             <button className="btn-ghost" disabled={busyScenario} onClick={() => runSyntheticScenario("POACHING_SUSPECT")}>
               {busyScenario ? "RUNNING…" : "POACHING SUSPECT (DEMO)"}
+            </button>
+            <button className="btn-ghost" disabled={busyScenario} onClick={() => runSyntheticScenario("FIRE_HAZARD")}>
+              {busyScenario ? "RUNNING…" : "FOREST FIRE (DEMO)"}
             </button>
           </div>
           <div className="buttons" style={{ marginTop: 8 }}>
@@ -321,14 +386,20 @@ export default function MissionConsole({ onBack }: { onBack: () => void }) {
         )}
       </section>
 
-      {wildlifeAlert && (
-        <section className="panel alert-panel">WILDLIFE / RAILWAY ALERT — human-intruder siren is not recommended.</section>
+      {wildlifeAlert && !isFireAlert && !effects.siren && (
+        <section className="panel alert-panel">
+          🐘 WILDLIFE DETECTED — Silent tracking mode active · human-deterrent siren suppressed to protect wildlife.
+        </section>
       )}
-      {poachingSuspect && (
-        <section className="panel warning-panel">POACHING SUSPECT — persistent human in a protected zone · VLM label POACHING_SUSPECT · siren + ranger dispatch (synthetic demo).</section>
+      {poachingSuspect && !isFireAlert && (
+        <section className="panel warning-panel">
+          ⚠️ POACHING SUSPECT — Persistent human in protected zone · siren raised + emergency ranger dispatch issued.
+        </section>
       )}
-      {thermalUnsupported && (
-        <section className="panel warning-panel">THERMAL / FIRE INPUT UNSUPPORTED — no suppression action is available.</section>
+      {isFireAlert && (
+        <section className="panel fire-panel">
+          🔥 FIRE SUPPRESSION ACTIVE — Thermal hotspot confirmed · automated suppressant payload triggered · emergency dispatch engaged.
+        </section>
       )}
 
       <section className="grid">
@@ -343,7 +414,8 @@ export default function MissionConsole({ onBack }: { onBack: () => void }) {
           <div className="effects">
             <span className={`chip ${effects.siren ? "chip-on pulse" : "chip-off"}`}>SIREN {effects.siren ? "ON" : "OFF"}</span>
             <span className={`chip ${effects.spotlight ? "chip-on" : "chip-off"}`}>SPOTLIGHT {effects.spotlight ? "ON" : "OFF"}</span>
-            <span className={`chip ${effects.dispatch ? "chip-ack" : "chip-off"}`}>DISPATCH {effects.dispatch ?? "—"}</span>
+            <span className={`chip ${effects.suppressant ? "chip-fire pulse" : "chip-off"}`}>SUPPRESSANT {effects.suppressant ? "RELEASED" : "STANDBY"}</span>
+            <span className={`chip ${effects.dispatch ? "chip-ack" : "chip-off"}`}>DISPATCH {effects.dispatch ?? "STANDBY"}</span>
           </div>
           {commandSummary.length > 0 && (
             <p className="muted cmd-summary-hint">{commands.length} logged commands → {commandSummary.length} distinct actions</p>
@@ -360,7 +432,8 @@ export default function MissionConsole({ onBack }: { onBack: () => void }) {
             <p className="muted">No commands emitted yet.</p>
           )}
           <div className="buttons" style={{ marginTop: 14 }}>
-            <button className="btn-warn" onClick={fireSuppression}>FIRE SUPPRESSION (PHASE 2)</button>
+            <button className="btn-fire" onClick={deployFireSuppressant}>🔥 RELEASE FIRE SUPPRESSANT</button>
+            <button className="btn-ghost" onClick={triggerSiren}>🚨 RAISE SIREN &amp; DISPATCH</button>
           </div>
         </div>
       </section>

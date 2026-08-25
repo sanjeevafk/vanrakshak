@@ -15,8 +15,11 @@ def test_wildlife_never_recommends_human_siren():
     assert "SIREN_ACTIVATE" not in decision.recommended_actions
 
 
-def test_thermal_is_explicitly_unsupported():
-    assert ThermalFirePolicy().evaluate({"input_type": "thermal"})[0].decision == "UNSUPPORTED_INPUT"
+def test_thermal_triggers_fire_alert_and_suppressant():
+    decision = ThermalFirePolicy().evaluate({"input_type": "thermal"})[0]
+    assert decision.decision == "RECOMMEND_ALERT"
+    assert "FIRE_SUPPRESSANT_DEPLOY" in decision.recommended_actions
+    assert "DISPATCH_RANGER" in decision.recommended_actions
 
 
 def test_transitions_are_deterministic_and_explainable():

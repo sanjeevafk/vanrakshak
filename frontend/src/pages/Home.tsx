@@ -179,15 +179,6 @@ const ACT_HUD_ITEMS = [
   { label: "PRIORITY", value: "HIGH", color: "#FF8B70" },
 ];
 
-const BENCHMARK_ROWS = [
-  { category: "VISION", model: "YOLO v8n", task: "Object Detection", accuracy: null, latency: null, status: "EVALUATION PENDING" },
-  { category: "VISION", model: "YOLO v8s", task: "Object Detection", accuracy: null, latency: null, status: "EVALUATION PENDING" },
-  { category: "SCENE", model: "VLM Adapter", task: "Scene Understanding", accuracy: null, latency: null, status: "EVALUATION PENDING" },
-  { category: "SCENE", model: "VLM Adapter", task: "Activity Classification", accuracy: null, latency: null, status: "EVALUATION PENDING" },
-  { category: "THREAT", model: "Rule Engine", task: "Threat Assessment", accuracy: null, latency: null, status: "CONNECTED" },
-  { category: "MISSION", model: "Policy Eval", task: "Decision Routing", accuracy: null, latency: null, status: "CONNECTED" },
-];
-
 const SAFETY_PILLARS = [
   {
     icon: "👁",
@@ -219,9 +210,6 @@ export default function Home({ onNavigate }: { onNavigate: (x?: number, y?: numb
   const [scrollY, setScrollY] = useState(0);
   const [heroLoaded, setHeroLoaded] = useState(false);
   const reducedMotion = useReducedMotion();
-  const [benchmarkVisible, setBenchmarkVisible] = useState(false);
-  const benchmarkSectionRef = useRef<HTMLElement>(null);
-  const benchmarkLineRef = useRef<HTMLDivElement>(null);
 
   // ── Cursor globe state (refs for zero-RERENDER performance) ──
   const cursorRef = useRef({ x: -100, y: -100 });
@@ -326,39 +314,6 @@ export default function Home({ onNavigate }: { onNavigate: (x?: number, y?: numb
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // ── Benchmark section observer ──
-  useEffect(() => {
-    const el = benchmarkSectionRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setBenchmarkVisible(true);
-          obs.disconnect();
-        }
-      },
-      { threshold: 0.2 }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-
-  // ── Benchmark glow line animation ──
-  useEffect(() => {
-    if (!benchmarkVisible || !benchmarkLineRef.current) return;
-    const el = benchmarkLineRef.current;
-    el.style.transition = "none";
-    el.style.transform = "translateX(-100%)";
-    let rafId: number;
-    requestAnimationFrame(() => {
-      rafId = requestAnimationFrame(() => {
-        el.style.transition = "transform 2s cubic-bezier(0.22, 1, 0.36, 1)";
-        el.style.transform = "translateX(100%)";
-      });
-    });
-    return () => cancelAnimationFrame(rafId);
-  }, [benchmarkVisible]);
-
   function scrollToId(id: string) {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   }
@@ -417,7 +372,7 @@ export default function Home({ onNavigate }: { onNavigate: (x?: number, y?: numb
             <button onClick={() => scrollToId("see")}>SEE</button>
             <button onClick={() => scrollToId("understand")}>UNDERSTAND</button>
             <button onClick={() => scrollToId("act")}>ACT</button>
-            <button onClick={() => scrollToId("benchmarks")}>Benchmarks</button>
+            <button onClick={() => scrollToId("safety")}>Safety</button>
           </div>
           <button className="nav-cta" onClick={handleNavigate}>
             ENTER MISSION →
@@ -594,69 +549,6 @@ export default function Home({ onNavigate }: { onNavigate: (x?: number, y?: numb
         </div>
       </section>
 
-      {/* ── MODEL BENCHMARKS ── */}
-      <section className="section-benchmarks" id="benchmarks" ref={benchmarkSectionRef}>
-        <div className="benchmarks-inner">
-          <Reveal>
-            <p className="section-eyebrow">MODEL BENCHMARKS</p>
-            <h2 className="section-headline">
-              Measured, not assumed.
-            </h2>
-            <p className="section-body" style={{ maxWidth: 680 }}>
-              VanRakshak evaluates its perception and language components against
-              repeatable benchmarks so model selection is based on measurable
-              performance rather than assumptions.
-            </p>
-          </Reveal>
-
-          <div className="benchmark-console">
-            {/* Glow line */}
-            <div className="benchmark-glow-line" ref={benchmarkLineRef} />
-
-            <div className="benchmark-header">
-              <span className="benchmark-header-dot" />
-              <span className="benchmark-header-title">VANRAKSHAK // MODEL EVALUATION CONSOLE</span>
-              <span className="benchmark-header-status">
-                {benchmarkVisible ? "● CONNECTED" : "○ STANDBY"}
-              </span>
-            </div>
-
-            <div className="benchmark-table">
-              <div className="benchmark-table-header">
-                <span className="bench-col bench-col-cat">CATEGORY</span>
-                <span className="bench-col bench-col-model">MODEL</span>
-                <span className="bench-col bench-col-task">TASK</span>
-                <span className="bench-col bench-col-acc">ACCURACY</span>
-                <span className="bench-col bench-col-lat">LATENCY</span>
-                <span className="bench-col bench-col-status">STATUS</span>
-              </div>
-              {BENCHMARK_ROWS.map((row, i) => (
-                <Reveal key={`${row.category}-${row.model}-${row.task}`} delay={Math.min(i + 1, 4)}>
-                  <div className="benchmark-row">
-                    <span className="bench-col bench-col-cat">{row.category}</span>
-                    <span className="bench-col bench-col-model">{row.model}</span>
-                    <span className="bench-col bench-col-task">{row.task}</span>
-                    <span className="bench-col bench-col-acc bench-val-pending">
-                      {row.accuracy ?? "—"}
-                    </span>
-                    <span className="bench-col bench-col-lat bench-val-pending">
-                      {row.latency ?? "—"}
-                    </span>
-                    <span className={`bench-col bench-col-status ${row.status === "CONNECTED" ? "bench-status-connected" : "bench-status-pending"}`}>
-                      {row.status}
-                    </span>
-                  </div>
-                </Reveal>
-              ))}
-            </div>
-
-            <div className="benchmark-footer">
-              <p>ACCURACY &amp; LATENCY — CONNECTED DURING EVALUATION</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ── SAFETY ── */}
       <section className="section-safety" id="safety">
         <div className="safety-inner">
@@ -727,7 +619,6 @@ export default function Home({ onNavigate }: { onNavigate: (x?: number, y?: numb
           </div>
           <div className="footer-links">
             <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>Home</button>
-            <button onClick={() => scrollToId("benchmarks")}>Benchmarks</button>
             <button onClick={handleNavigate}>Mission Console</button>
             <button onClick={() => scrollToId("safety")}>About</button>
           </div>

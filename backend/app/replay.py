@@ -34,7 +34,9 @@ class MissionRunner:
         policies = PolicyEngine()
         actuator = ActuatorAdapter(mission_id)
         sequence = 0
-        track_id = 2 if wildlife else 1
+        is_fire = activity in {"FIRE_HAZARD", "FOREST_FIRE", "FIRE"}
+        track_id = 3 if is_fire else (2 if wildlife else 1)
+        class_name = "fire" if is_fire else ("elephant" if wildlife else "person")
 
         def emit(event_type: str, source: str, **kwargs):
             nonlocal sequence
@@ -46,13 +48,15 @@ class MissionRunner:
             now = clock.tick()
             emit("TELEMETRY_UPDATED", "telemetry_simulator", payload={"battery_pct": round(max(0, min(100, 100 - now * 0.8)), 2), "gps": {"lat": 13.083 + now * .0001, "lng": 80.272 + now * .0001}, "wind_mps": 3.2})
             evidence_id = f"obs-{mission_id}-{sequence + 1:05d}"
-            emit("DETECTION_OBSERVED", "perception", track_id=track_id, evidence_refs=[evidence_id], payload={"class_name": "elephant" if wildlife else "person", "confidence": 0.92})
-            emit("TRACK_UPDATED", "perception", track_id=track_id, evidence_refs=[evidence_id], payload={"class_name": "elephant" if wildlife else "person", "confidence": 0.92, "timestamp_seconds": now})
+            emit("DETECTION_OBSERVED", "perception", track_id=track_id, evidence_refs=[evidence_id], payload={"class_name": class_name, "confidence": 0.92})
+            emit("TRACK_UPDATED", "perception", track_id=track_id, evidence_refs=[evidence_id], payload={"class_name": class_name, "confidence": 0.92, "timestamp_seconds": now})
             if activity:
-                emit("SCENE_ANALYZED", "vlm_adapter", track_id=track_id, evidence_refs=[evidence_id], payload={"activity_type": activity, "scene_summary": f"Persistent human track in a protected forest zone — {activity.replace('_', ' ').title()}.", "behavior_rating": "HIGH", "vlm_confidence": 0.90, "source": "synthetic_demo"})
-            score = threat_score(ThreatInput(vlm_confidence=0.9, detector_confidence=0.92, zone_risk=0.8, acoustic_score=0.3))
-            emit("THREAT_ASSESSED", "threat_engine", track_id=track_id, evidence_refs=[evidence_id], payload={"score": score, "policy_id": "wildlife_proximity" if wildlife else "human_intrusion"})
-            decisions = policies.evaluate({"class_name": "elephant" if wildlife else "person", "confidence": .92, "persistent": True, "vlm_confirmed": vlm_confirmed, "track_id": track_id, "evidence_refs": [evidence_id]})
+                summary_text = "Thermal infrared hotspot detected — active forest fire. Autonomous suppressant deployed." if is_fire else f"Persistent human track in a protected forest zone — {activity.replace('_', ' ').title()}."
+                emit("SCENE_ANALYZED", "vlm_adapter", track_id=track_id, evidence_refs=[evidence_id], payload={"activity_type": activity, "scene_summary": summary_text, "behavior_rating": "CRITICAL" if is_fire else "HIGH", "vlm_confidence": 0.90, "source": "synthetic_demo"})
+            score = threat_score(ThreatInput(vlm_confidence=0.9, detector_confidence=0.92, zone_risk=0.9 if is_fire else 0.8, acoustic_score=0.3))
+            policy_id = "thermal_fire" if is_fire else ("wildlife_proximity" if wildlife else "human_intrusion")
+            emit("THREAT_ASSESSED", "threat_engine", track_id=track_id, evidence_refs=[evidence_id], payload={"score": score, "policy_id": policy_id})
+            decisions = policies.evaluate({"class_name": class_name, "activity_type": activity, "confidence": .92, "persistent": True, "vlm_confirmed": vlm_confirmed, "track_id": track_id, "evidence_refs": [evidence_id], "input_type": "thermal" if is_fire else "visual"})
             for decision in decisions:
                 t_id = decision.track_id if decision.track_id is not None else track_id
                 emit("POLICY_EVALUATED", "policy_engine", track_id=t_id, evidence_refs=[evidence_id], payload=decision.model_dump())

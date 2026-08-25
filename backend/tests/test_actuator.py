@@ -25,13 +25,13 @@ def test_duplicate_commands_and_suppressant():
     adapter = ActuatorAdapter("m1")
     first = adapter.emit("PATROL_SCAN"); second = adapter.emit("PATROL_SCAN")
     assert first.command_id == second.command_id and len(adapter.emitted) == 1
-    assert adapter.emit("FIRE_SUPPRESSANT_DEPLOY").status == "UNAVAILABLE"
+    assert adapter.emit("FIRE_SUPPRESSANT_DEPLOY").status == "SENT"
 
 
-def test_unsupported_policies_do_not_produce_acknowledged_commands():
+def test_thermal_policy_produces_suppressant_and_dispatch():
     adapter = ActuatorAdapter("m1")
-    railway = adapter.for_policy("railway_conflict", incident_id="i1")
     thermal = adapter.for_policy("thermal_fire", incident_id="i2")
-    assert all(c.command == "UNSUPPORTED_INPUT" for c in railway + thermal)
-    assert all(c.status == "UNAVAILABLE" for c in railway + thermal)
+    assert any(c.command == "FIRE_SUPPRESSANT_DEPLOY" for c in thermal)
+    assert any(c.command == "DISPATCH_RANGER" for c in thermal)
+    assert all(c.status == "SENT" for c in thermal)
 

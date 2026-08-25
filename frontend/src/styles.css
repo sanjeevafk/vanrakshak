@@ -1324,6 +1324,34 @@ button:disabled {
   letter-spacing: 0.06em;
   animation: sirenFlash 1s infinite;
 }
+.fire-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(140, 35, 15, 0.7);
+  border: 1px solid #ff5722;
+  color: #fff0eb;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 18px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  animation: sirenFlash 1s infinite;
+}
+.fire-panel {
+  background: rgba(90, 25, 12, 0.45) !important;
+  border-left: 3px solid #ff5722 !important;
+  color: #ffccbc !important;
+}
+.btn-fire {
+  background: rgba(160, 45, 18, 0.75) !important;
+  color: #fff !important;
+  border: 1px solid #ff5722 !important;
+  font-weight: 700 !important;
+}
+.btn-fire:hover {
+  background: rgba(200, 55, 20, 0.9) !important;
+}
 .video-wrap {
   position: relative;
 }
@@ -1358,6 +1386,14 @@ button:disabled {
   border: 1px solid rgba(138, 59, 42, 0.4);
 }
 .chip-on.pulse {
+  animation: sirenFlash 1s infinite;
+}
+.chip-fire {
+  background: rgba(140, 35, 15, 0.6) !important;
+  color: #ffab91 !important;
+  border: 1px solid #ff5722 !important;
+}
+.chip-fire.pulse {
   animation: sirenFlash 1s infinite;
 }
 .chip-off {

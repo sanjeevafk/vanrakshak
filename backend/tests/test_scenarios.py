@@ -26,8 +26,9 @@ def test_wildlife_railway_and_suppressant_commands():
     wildlife = adapter.for_policy("wildlife_proximity", incident_id="wildlife-1")
     assert {command.command for command in wildlife} == {"WILDLIFE_ALERT", "DISPATCH_RANGER"}
     railway = adapter.for_policy("railway_conflict", incident_id="railway-1")
-    assert railway[0].status == "UNAVAILABLE"
-    assert adapter.emit("FIRE_SUPPRESSANT_DEPLOY").status == "UNAVAILABLE"
+    assert {command.command for command in railway} == {"WILDLIFE_ALERT", "DISPATCH_RANGER"}
+    assert all(c.status == "SENT" for c in railway)
+    assert adapter.emit("FIRE_SUPPRESSANT_DEPLOY").status == "SENT"
 
 def test_vlm_timeout_fallback_scenario():
     async def timeout(_):

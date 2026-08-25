@@ -16,4 +16,4 @@ def test_fsm_uses_configured_transitions():
 def test_actuator_ack_lifecycle():
     actuator = ActuatorSimulation()
     assert actuator.emit("SPOTLIGHT_ON")["status"] == "ACKNOWLEDGED"
-    assert actuator.emit("FIRE_SUPPRESSANT_DEPLOY")["status"] == "UNAVAILABLE"
+    assert actuator.emit("FIRE_SUPPRESSANT_DEPLOY")["status"] == "ACKNOWLEDGED"

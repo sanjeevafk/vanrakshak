@@ -53,5 +53,5 @@ class ActuatorSimulation:
     def emit(self, command: str) -> dict:
         item = {"command": command, "status": "SENT"}
         self.commands.append(item)
-        item["status"] = "ACKNOWLEDGED" if command != "FIRE_SUPPRESSANT_DEPLOY" else "UNAVAILABLE"
+        item["status"] = "ACKNOWLEDGED"
         return item

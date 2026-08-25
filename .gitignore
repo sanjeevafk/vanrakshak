@@ -1,15 +1,47 @@
+# Environment & Secrets
 .env
+.env.local
+.env.*.local
+
+# Python
 .venv/
+venv/
 __pycache__/
 *.py[cod]
-node_modules/
-dist/
+*$py.class
+.mypy_cache/
 .pytest_cache/
 .coverage
-*.mp4
+htmlcov/
+.cache/
+
+# Node / Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+.npm
+
+# Videos & Heavy Assets (Excluded from remote repository)
 demo_videos/
+*.mp4
+*.part
+*.avi
+*.mov
+*.mkv
+
+# AI Model Weights & Exports
 *.pt
 *.engine
 *.onnx
+*.tflite
 weights/
-.cache/
+
+# Operating System & Editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

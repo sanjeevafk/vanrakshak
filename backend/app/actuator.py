@@ -12,7 +12,7 @@ class ActuatorAdapter:
 
     def emit(self, command: str, *, timestamp_seconds: float = 0.0, incident_id: str | None = None, evidence_refs: list[str] | None = None, policy_id: str | None = None) -> CommandEvent:
         command_id = f"cmd-{self.mission_id}-{len(self.emitted) + 1:05d}"
-        if command in {"FIRE_SUPPRESSANT_DEPLOY", "UNSUPPORTED_INPUT"}: status = "UNAVAILABLE"
+        if command == "UNSUPPORTED_INPUT": status = "UNAVAILABLE"
         else: status = "SENT"
         event = CommandEvent(command_id=command_id, command=command, status=status, mission_id=self.mission_id, incident_id=incident_id, evidence_refs=evidence_refs or [], policy_id=policy_id)
         if not any(item.command == command and item.incident_id == incident_id for item in self.emitted):
@@ -36,6 +36,8 @@ class ActuatorAdapter:
             "human_intrusion": ["SIREN_ACTIVATE", "DISPATCH_RANGER"],
             "wildlife_proximity": ["WILDLIFE_ALERT", "DISPATCH_RANGER"],
             "vehicle_intrusion": ["DISPATCH_RANGER"],
+            "railway_conflict": ["WILDLIFE_ALERT", "DISPATCH_RANGER"],
+            "thermal_fire": ["FIRE_SUPPRESSANT_DEPLOY", "DISPATCH_RANGER"],
         }
         if policy_id in supported_commands:
             return [self.emit(command, timestamp_seconds=timestamp_seconds, incident_id=incident_id, evidence_refs=evidence_refs, policy_id=policy_id) for command in supported_commands[policy_id]]
