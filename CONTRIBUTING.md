@@ -1,4 +1,4 @@
-# Contributing to VanRakshak (वनरक्षक)
+# Contributing to VanRakshak
 
 Thank you for your interest in contributing to **VanRakshak**, an open-source autonomous drone patrolling and forest conservation platform.
 

@@ -1,4 +1,4 @@
-# VanRakshak (वनरक्षक) — Technical Architecture Specification
+# VanRakshak — Technical Architecture Specification
 
 ## 1. System Architecture & Dual-Tier Perception Loop
 
