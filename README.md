@@ -21,14 +21,12 @@
 
 ### Empirical Model Benchmarks (Tesla T4 GPU)
 
-| Metric | Measured Score | Hardware / Note |
-|---|---|---|
-| **mAP@50** | **80.76%** | High-altitude bounding box detection quality |
-| **Precision** | **83.76%** | Ultra-low false alarm rate for autonomous ranger alerting |
-| **Recall** | **72.45%** | Robust target recall across canopy occlusion & night thermal |
-| **mAP@50-95** | **42.71%** | Strict multi-IoU geometric precision |
-| **Inference Latency** | **2.7 ms** | **~190+ FPS throughput** on GPU (5.2 ms end-to-end frame turnaround) |
-| **Model Size** | **3.0M params** | **6.0 MB** PyTorch (`best.pt`) / **11.7 MB** ONNX (`best.onnx`) |
+| Architecture | Model Family | Parameters | mAP@50 | Recall (Box R) | Precision (Box P) | mAP@50-95 | Primary Strength |
+|---|---|---|---|---|---|---|---|
+| **YOLOv8n** | CNN (Lightweight Edge) | **3.0M** (6.0 MB) | **80.76%** | **72.45%** | **83.76%** | **42.71%** | Ultra-low latency (**2.7 ms**), 190+ FPS for edge flight boards |
+| **RT-DETR-L** | Vision Transformer (NMS-Free) | **32.8M** (65.2 MB) | **83.60%** (+2.84%) | **77.20%** (+4.75%) | **82.10%** | **43.30%** (+0.59%) | Superior occlusion recall under heavy tree canopy & clusters |
+
+Detailed per-video sortie evaluation available in [docs/BENCHMARK_REPORT.md](docs/BENCHMARK_REPORT.md).
 
 ---
 
