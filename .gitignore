@@ -38,9 +38,11 @@ datasets/
 *.tflite
 weights/
 
-# Local-Only Implementation Plans
+# Local-Only Implementation Plans & Hardware Demo Plans
 docs/*IMPLEMENTATION.md
 *IMPLEMENTATION.md
+docs/*PLAN*.md
+*PLAN*.md
 
 # Operating System & Editors
 .DS_Store
