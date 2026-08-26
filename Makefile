@@ -1,9 +1,12 @@
-.PHONY: all start eval install test test-backend test-frontend typecheck build clean
+.PHONY: all start eval run-cli install test test-backend test-frontend typecheck build clean
 
 all: test build
 
 start:
 	./scripts/start_app.sh
+
+run-cli:
+	./backend/.venv/bin/python scripts/run_drone_mission.py $(VIDEO)
 
 eval:
 	./scripts/run_evals.sh
